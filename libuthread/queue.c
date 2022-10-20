@@ -63,7 +63,8 @@ int queue_enqueue(queue_t queue, void *data)
                 return 0;
         }
 
-        queue->last->next = tmp; //set existing last to point to new element
+        //Point last queued element's 'next' to new element
+        queue->last->next = tmp; 
         queue->last = tmp; //enqueue
         queue->size++;
 
@@ -72,7 +73,22 @@ int queue_enqueue(queue_t queue, void *data)
 
 int queue_dequeue(queue_t queue, void **data)
 {
-        /* TODO Phase 1 */
+        if (queue == NULL) return -1;
+        if (queue->size == 0) return -1;
+        if (data == NULL) return -1;
+
+        //Save data
+        *data = queue->first->data;
+
+        //Replace oldest in queue
+        queue->first = queue->first->next;
+        queue->size--;
+
+        //Empty queue if no more elements
+        if (queue->first == NULL)
+                queue->last = NULL;
+
+        return 0;
 }
 
 int queue_delete(queue_t queue, void *data)
@@ -87,6 +103,6 @@ int queue_iterate(queue_t queue, queue_func_t func)
 
 int queue_length(queue_t queue)
 {
-        /* TODO Phase 1 */
+        return queue->size;
 }
 
