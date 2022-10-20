@@ -5,6 +5,8 @@
 
 #include "queue.h"
 
+#define FAILURE -1
+
 typedef struct node
 {
         void *data;     // holds an address to an unknown data type
@@ -33,7 +35,13 @@ queue_t queue_create(void)
 
 int queue_destroy(queue_t queue)
 {
-        /* TODO Phase 1 */
+        if (queue == NULL) return -1;
+        if (queue->size != 0) return -1;
+
+        //destroy queue
+        free(queue);
+
+        return 0;
 }
 
 int queue_enqueue(queue_t queue, void *data)
