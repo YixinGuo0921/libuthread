@@ -11,7 +11,7 @@ MAIN 			:= libuthread.a
 all: $(MAIN)
 
 $(MAIN): $(OBJS)
-	ar -r $(MAIN) $(OBJS)
+	ar rcs $(MAIN) $(OBJS)
 
 $(OBJS): queue.c queue.h
 	$(CC) $(CFLAGS) -c $< -o $@
