@@ -111,12 +111,13 @@ int queue_delete(queue_t queue, void *data)
 
         if (current == NULL) return -1;
 
+        //First element
         if (current->data == data) {
                 queue_dequeue(queue, &data);
                 return 0;
         }
 
-        //Search through queue
+        //Iterate through queue until match found
         while (current->data != data && current != NULL) {
                 prev = current;
                 current = current->next;
@@ -146,15 +147,12 @@ int queue_iterate(queue_t queue, queue_func_t func)
 {
         if (queue == NULL || func == NULL) return -1;
 
-        node* current = queue->first;
-        node* prev = NULL;
+        node* tmp = queue->first;
 
         //Apply function to every node in queue
-        while (current != NULL) {
-                prev = current; //protection against deletion (shallow copy; doesn't work)
-
-                func(queue, current->data);
-                current = prev->next;
+        while (tmp != NULL) {
+                func(queue, tmp->data);
+                tmp = tmp->next;
         }
 
         return 0;
