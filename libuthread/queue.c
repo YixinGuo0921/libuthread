@@ -87,8 +87,11 @@ int queue_dequeue(queue_t queue, void **data)
 
         //Replace oldest in queue
         queue->first = queue->first->next;
-        queue->first->prev = NULL;
         queue->size--;
+
+        //Reset first
+        if (queue->size != 0)
+                queue->first->prev = NULL;
 
         //Empty queue if no more elements
         if (queue->first == NULL)
