@@ -106,7 +106,15 @@ void test_delete()
 
 void test_iterate()
 {
+	queue_t q;
+	int data[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+	size_t i;
+
 	fprintf(stderr, "*** TEST queue_iterate ***\n");
+
+	q = queue_create();
+	for (i = 0; i < sizeof(data) / sizeof(data[0]); i++)
+		queue_enqueue(q, &data[i]);
 
 	queue_iterate(q, print_element);
 
@@ -119,7 +127,7 @@ void test_iterate_deletion()
 	int data[] = { 1, 2, 3, 4, 5, 42, 6, 7, 8, 9 };
 	size_t i;
 
-	fprintf(stderr, "*** TEST queue_iterate ***\n");
+	fprintf(stderr, "*** TEST queue_iterate_delete ***\n");
 
 	/* Initialize the queue and enqueue items */
 	q = queue_create();
@@ -139,6 +147,7 @@ int main(void)
 	test_queue_basic_unit();
 	test_delete();
 	test_iterate();
+	test_iterate_deletion();
 
 	return 0;
 }
