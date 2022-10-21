@@ -145,12 +145,16 @@ int queue_iterate(queue_t queue, queue_func_t func)
 {
         if (queue == NULL || func == NULL) return -1;
 
-        node* tmp = queue->first;
+        node* element = queue->first;
 
         //Apply function to every node in queue
-        while (tmp != NULL) {
-                func(queue, tmp->data);
-                tmp = tmp->next;
+        while (element != NULL) {
+                node* tmp = element->next; //protection against deletion (shallow copy; doesn't work)
+
+                func(queue, element->data);
+                element = tmp;
+                printf("%d\n", (int*) tmp->data);
+                free(tmp);
         }
 
         return 0;
