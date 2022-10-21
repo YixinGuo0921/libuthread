@@ -106,17 +106,16 @@ int queue_delete(queue_t queue, void *data)
         node* tmp = queue->first;
 
         while (tmp != NULL) {
-                if (tmp->data != data)
-                {
-                        tmp = tmp->next;
-                        continue;
+
+                if (tmp->data == data)
+                {                //Reassign elements
+                        tmp->prev->next = tmp->next;
+
+                        free(tmp);
+                        return 0;
                 }
 
-                //Reassign elements
-                tmp->prev->next = tmp->next;
-
-                free(tmp);
-                return 0;
+                tmp = tmp->next;
         }
 
         return -1;
