@@ -15,6 +15,14 @@ do {									\
 	}									\
 } while(0)
 
+static void print_element(queue_t q, void* data) {
+
+	queue_length(q);
+
+	int* a = (int*)data;
+	printf("data: %d\n", *a);
+}
+
 /* Create */
 void test_create(void)
 {
@@ -55,6 +63,7 @@ void test_queue_basic_unit(void)
 	fprintf(stderr, "*** TEST queue_dequeue ***\n");
 
 	TEST_ASSERT(queue_dequeue(q, (void**)&ptr) == 0);
+	TEST_ASSERT(*ptr == 3);
 	TEST_ASSERT(queue_dequeue(NULL, (void**)&ptr) == -1);
 	TEST_ASSERT(queue_dequeue(q, NULL) == -1);
 	TEST_ASSERT(queue_dequeue(q, (void**)&ptr) == -1);	//test empty
@@ -75,19 +84,24 @@ void test_delete()
 	for (i = 0; i < sizeof(data) / sizeof(data[0]); i++)
 		queue_enqueue(q, &data[i]);
 
-	TEST_ASSERT(queue_delete(q, &data[5]) == 0);
-	TEST_ASSERT(queue_delete(NULL, &data[5]) == -1);
-	TEST_ASSERT(queue_delete(q, NULL) == -1);
-
-	int trash = 6;
-	TEST_ASSERT(queue_delete(q, &trash) == -1);
+	TEST_ASSERT(queue_length(q) == 10);
+	TEST_ASSERT(queue_delete(q, &data[5]) == 0); // delete 42
+	TEST_ASSERT(queue_length(q) == 9);
+	TEST_ASSERT(queue_delete(q, &data[0]) == 0); // delete 1
+	TEST_ASSERT(queue_length(q) == 8);
+	TEST_ASSERT(queue_delete(q, &data[9]) == 0); //
+	TEST_ASSERT(queue_length(q) == 7);
 
 	printf("\n");
 }
 
 void test_iterate()
 {
+	fprintf(stderr, "*** TEST queue_iterate ***\n");
 
+	queue_iterate(q, print_element);
+
+	printf("\n");
 }
 
 int main(void)
@@ -96,6 +110,7 @@ int main(void)
 	test_destroy();
 	test_queue_basic_unit();
 	test_delete();
+	test_iterate();
 
 	return 0;
 }

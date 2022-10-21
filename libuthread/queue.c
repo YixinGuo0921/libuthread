@@ -89,7 +89,7 @@ int queue_dequeue(queue_t queue, void **data)
         queue->first = queue->first->next;
         queue->size--;
 
-        //Reset first
+        //Reset queue->first pointers
         if (queue->size != 0)
                 queue->first->prev = NULL;
 
@@ -106,22 +106,39 @@ int queue_delete(queue_t queue, void *data)
 {
         if (queue == NULL || data == NULL) return -1;
         
-        node* tmp = queue->first;
+        node* current = queue->first;
+        node* prev = NULL;
 
-        while (tmp != NULL) {
+        if (current == NULL) return -1;
 
-                if (tmp->data == data)
-                {                //Reassign elements
-                        tmp->prev->next = tmp->next;
-
-                        free(tmp);
-                        return 0;
-                }
-
-                tmp = tmp->next;
+        if (current->data == data) {
+                queue_dequeue(queue, &data);
+                return 0;
         }
 
-        return -1;
+        while (current->data != data && current != NULL) {
+                prev = current;
+                current = current->next;
+        }
+        if (current == NULL) return -1;
+        
+        //Data found
+        if (current == queue->last)
+        {
+                queue->last = current->prev;
+                queue->last->next = NULL;
+
+                free(current);
+                queue->size--;
+                return 0;
+        }
+
+        current->next->prev = prev;
+        prev->next = current->next;
+
+        free(current);
+        queue->size--;
+        return 0;
 }
 
 int queue_iterate(queue_t queue, queue_func_t func)
