@@ -15,3 +15,6 @@ $(MAIN): $(OBJS)
 
 $(OBJS): queue.c queue.h
 	$(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -rf *.a *.o

@@ -103,20 +103,19 @@ int queue_delete(queue_t queue, void *data)
 {
         if (queue == NULL || data == NULL) return -1;
         
-        node* element = queue->first;
+        node* tmp = queue->first;
 
-        while (element != NULL)
-        {
-                if (element->data != data)
+        while (tmp != NULL) {
+                if (tmp->data != data)
                 {
-                        element = element->next;
+                        tmp = tmp->next;
                         continue;
                 }
 
                 //Reassign elements
-                element->prev->next = element->next;
-                
-                free(element);
+                tmp->prev->next = tmp->next;
+
+                free(tmp);
                 return 0;
         }
 
@@ -125,7 +124,17 @@ int queue_delete(queue_t queue, void *data)
 
 int queue_iterate(queue_t queue, queue_func_t func)
 {
-        /* TODO Phase 1 */
+        if (queue == NULL || func == NULL) return -1;
+
+        node* tmp = queue->first;
+
+        //Apply function to every node in queue
+        while (tmp != NULL) {
+                func(queue, tmp->data);
+                tmp = tmp->next;
+        }
+
+        return 0;
 }
 
 int queue_length(queue_t queue)
