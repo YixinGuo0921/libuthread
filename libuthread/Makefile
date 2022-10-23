@@ -1,6 +1,20 @@
-# Target library
-lib := libuthread.a
+# Target librariy
+CC			=  gcc
+override CFLAGS 	+= -Wall\
+			   -Wextra\
+			   -Werror
 
-all: $(lib)
+OBJS			=  queue.o
 
-## TODO: Phase 1
+MAIN 			:= libuthread.a
+
+all: $(MAIN)
+
+$(MAIN): $(OBJS)
+	ar rcs $(MAIN) $(OBJS)
+
+$(OBJS): queue.c queue.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -rf *.a *.o
