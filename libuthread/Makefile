@@ -1,19 +1,25 @@
 # Target librariy
-CC			=  gcc
-override CFLAGS 	+= -Wall\
-			   -Wextra\
-			   -Werror
+CC = gcc
 
-OBJS			=  queue.o
+override CFLAGS += \
+	-Wall \
+	-Wextra\
+	-Werror
 
-MAIN 			:= libuthread.a
+OBJS = \
+	queue.o \
+	uthread.o \
+	context.o \
+	preempt.o
+
+MAIN := libuthread.a
 
 all: $(MAIN)
 
 $(MAIN): $(OBJS)
 	ar rcs $(MAIN) $(OBJS)
 
-$(OBJS): queue.c queue.h
+%.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:

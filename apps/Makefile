@@ -1,7 +1,7 @@
 # Target programs
 programs := \
 	queue_tester.x \
-	#uthread_hello.x \
+	uthread_hello.x \
 	uthread_yield.x
 
 # FIXME: Remove this in student version

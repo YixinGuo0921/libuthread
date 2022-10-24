@@ -28,6 +28,8 @@ void preempt_enable(void)
 void preempt_start(bool preempt)
 {
 	/* TODO Phase 4 */
+	//TEMPORARY TO STOP ERRORS
+	if (preempt) return;
 }
 
 void preempt_stop(void)
