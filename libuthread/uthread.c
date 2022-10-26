@@ -10,70 +10,79 @@
 #include "queue.h"
 #include "uthread.h"
 
-queue_t q;
+#define  READY 0
+#define  RUNNING 1
+#define  EXITED 2
+
+struct uthread_tcb* initial_tcb;
+uthread_ctx_t* idle_ctx;
+queue_t thread_queue;
 
 struct uthread_tcb {
         uthread_ctx_t* thread_ctx;
         void* stack_ptr;
+        int state;
 };
 
 struct uthread_tcb *uthread_current(void)
 {
-        /* TODO Phase 2/4 */
-        //TEMPORARY TO STOP ERRORS
-        struct uthread_tcb* tcb = malloc(sizeof(struct uthread_tcb));
-        return tcb;
+        /* TODO Phase 4 */
+
+        return initial_tcb;
 }
 
 void uthread_yield(void)
 {
-        
+
 }
 
 void uthread_exit(void)
 {
-        /* TODO Phase 2 */
+        // Free current thread
+        uthread_ctx_destroy_stack(initial_tcb->stack_ptr);
+        free(initial_tcb);
+
+        // Switch back to idle (main) context
+        setcontext(idle_ctx);
 }
 
 int uthread_create(uthread_func_t func, void *arg)
 {
-        // Allocate space for TCB, context, and stack pointer.
-        struct uthread_tcb* tcb = malloc(sizeof(struct uthread_tcb));
+        // Allocate space for new context and stack pointer.
+        struct uthread_tcb* new_tcb = malloc(sizeof(struct uthread_tcb));
         uthread_ctx_t* thread_ctx = malloc(sizeof(uthread_ctx_t));
         void* stack_ptr = uthread_ctx_alloc_stack();
 
-        if (tcb == NULL || thread_ctx == NULL || stack_ptr == NULL) return -1; // malloc failed
+        if (new_tcb == NULL || thread_ctx == NULL || stack_ptr == NULL) return -1; // malloc failed
 
         if (uthread_ctx_init(thread_ctx, stack_ptr, func, arg) != 0) return -1;
         
-        tcb->thread_ctx = thread_ctx;
-        tcb->stack_ptr = stack_ptr;
-        queue_enqueue(q, tcb);
-
+        new_tcb->thread_ctx = thread_ctx;
+        new_tcb->stack_ptr = stack_ptr;
+        new_tcb->state = READY;
+        queue_enqueue(thread_queue, new_tcb);
         return 0;
 }
 
 int uthread_run(bool preempt, uthread_func_t func, void *arg)
 {
-        // Thread queue
-        q = queue_create();
-
-        // Create idle & initial contexts
-        uthread_ctx_t* idle_ctx = malloc(sizeof(uthread_ctx_t));
-        struct uthread_tcb* current_tcb = malloc(sizeof(struct uthread_tcb));
-
-        // Create initial thread
-        if (uthread_create(func, arg) != 0) return -1;
-
-        // Use preempt (TEMPORARY)
+        /*Use preempt var to avoid gcc error(TEMPORARY)*/
         if (preempt) return -1;
 
-        while (queue_length(q) != 0) {
-                queue_dequeue(q, (void**) & current_tcb);
-                uthread_ctx_switch(idle_ctx, current_tcb->thread_ctx); //does not destroy stacks yet
-        }
+        // Create FIFO queue
+        thread_queue = queue_create();
 
-        uthread_ctx_switch(current_tcb->thread_ctx, idle_ctx);
+        // Initialize Idle & Initial Threads
+        idle_ctx = malloc(sizeof(uthread_ctx_t));
+        initial_tcb = malloc(sizeof(struct uthread_tcb));
+
+        // Create initial TCB
+        if (uthread_create(func, arg) != 0) return -1;
+
+        do {
+                queue_dequeue(thread_queue, (void**)&initial_tcb);
+                uthread_ctx_switch(idle_ctx, initial_tcb->thread_ctx); //calls uthread_exit() when return
+        } while (queue_length(thread_queue) != 0);
 
         return 0;
 }
