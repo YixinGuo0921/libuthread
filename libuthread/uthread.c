@@ -14,35 +14,74 @@
 #define  RUNNING 1
 #define  EXITED 2
 
+struct uthread_tcb* running_tcb;
 struct uthread_tcb* initial_tcb;
 uthread_ctx_t* idle_ctx;
 queue_t thread_queue;
 
+
+
+/*TCB Data Structure*/
 struct uthread_tcb {
         uthread_ctx_t* thread_ctx;
         void* stack_ptr;
         int state;
 };
 
+/*Queue Functions*/
+static void set_first_in_queue(queue_t q, void* data)
+{
+        if (queue_length(q) == 0)
+                return;
+
+        struct uthread_tcb* tcb_tmp = data;
+        if (tcb_tmp->state == READY) {
+                running_tcb = tcb_tmp;
+        }
+}
+
+static void set_running(queue_t q, void* data)
+{
+        if (queue_length(q) == 0)
+                return;
+
+        struct uthread_tcb* tcb_tmp = data;
+        if (tcb_tmp->state == RUNNING) {
+                running_tcb = tcb_tmp;
+        }
+}
+
+/* Thread Functions*/
 struct uthread_tcb *uthread_current(void)
 {
-        /* TODO Phase 4 */
+        queue_iterate(thread_queue, set_running); // Sets running_tcb to the running thread
 
-        return initial_tcb;
+        return running_tcb;
 }
 
 void uthread_yield(void)
 {
+        queue_delete(thread_queue, uthread_current());  // Delete this thread from thread queue
+        running_tcb->state = READY;                     // Update this thread's state
+        //printf("Yielded %p\n", running_tcb->stack_ptr);
+        queue_enqueue(thread_queue, running_tcb);       // Queue this thread to the back (context not updated yet)
+        uthread_ctx_switch(running_tcb->thread_ctx, idle_ctx);      // Switch to idle (updates running context)
 
+        // After coming back, update this thread's state
+        //printf("Continuing %p\n", running_tcb->stack_ptr);
+        running_tcb->state = RUNNING;
 }
 
 void uthread_exit(void)
-{
-        // Free current thread
-        uthread_ctx_destroy_stack(initial_tcb->stack_ptr);
-        free(initial_tcb);
+{ 
+        // Delete this thread from thread queue
+        queue_delete(thread_queue, uthread_current());
 
-        // Switch back to idle (main) context
+        // Free this thread
+        uthread_ctx_destroy_stack(running_tcb->stack_ptr);
+        free(running_tcb);
+
+        // Switch back to idle (main) context w/o saving
         setcontext(idle_ctx);
 }
 
@@ -79,9 +118,12 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
         // Create initial TCB
         if (uthread_create(func, arg) != 0) return -1;
 
+        queue_iterate(thread_queue, set_first_in_queue); // Sets initial_tcb
+
         do {
-                queue_dequeue(thread_queue, (void**)&initial_tcb);
-                uthread_ctx_switch(idle_ctx, initial_tcb->thread_ctx); //calls uthread_exit() when return
+                initial_tcb->state = RUNNING;
+                uthread_ctx_switch(idle_ctx, initial_tcb->thread_ctx);
+                queue_iterate(thread_queue, set_first_in_queue); // Sets initial_tcb
         } while (queue_length(thread_queue) != 0);
 
         return 0;
