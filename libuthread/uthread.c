@@ -56,18 +56,29 @@ struct uthread_tcb *uthread_current(void)
 
 void uthread_yield(void)
 {
-        queue_delete(thread_queue, uthread_current());          // Delete this thread from thread queue
-        running_tcb->state = READY;                             // Update this thread's state
-        queue_enqueue(thread_queue, running_tcb);               // Queue this thread to the back (context not updated yet)
-        uthread_ctx_switch(running_tcb->thread_ctx, idle_ctx);  // Switch to idle (updates running context)
+        // Create local pointer to safeguard reentrance
+        struct uthread_tcb* running_tcb = uthread_current()
+
+        // Delete this thread from thread queue
+        queue_delete(thread_queue, running_tcb);
+
+        // Queue this thread to the back (context not updated yet)
+        running_tcb->state = READY;
+        queue_enqueue(thread_queue, running_tcb);
+
+        // Switch to idle (updates running context)
+        uthread_ctx_switch(running_tcb->thread_ctx, idle_ctx);
 }
 
 void uthread_exit(void)
-{ 
-        // Delete this thread from thread queue
-        queue_delete(thread_queue, uthread_current());
+{
+        // Create local pointer to safeguard reentrance
+        struct uthread_tcb* running_tcb = uthread_current(); 
 
-        // Free this thread
+        // Delete this thread from thread queue
+        queue_delete(thread_queue, running_tcb);
+
+        // Free this thread (unnecessary?)
         uthread_ctx_destroy_stack(running_tcb->stack_ptr);
         running_tcb->state = EXITED;
         free(running_tcb);
@@ -112,7 +123,7 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
         if (uthread_create(func, arg) != 0) return -1;
 
         do {
-                //If queue not empty, get next thread and queue it to the back
+                //Get next thread and queue it to the back (functionally the same as just reading the first element)
                 queue_dequeue(thread_queue, (void**)&initial_tcb);
                 queue_enqueue(thread_queue, initial_tcb);
 
