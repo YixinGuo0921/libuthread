@@ -20,10 +20,7 @@ void thread3(void *arg)
 {
 	(void)arg;
 
-	printf("TEST: YIELDING 3\n");
 	uthread_yield();
-	printf("RE-RUNNING 3\n");
-
 	printf("thread3\n");
 }
 
@@ -32,11 +29,7 @@ void thread2(void *arg)
 	(void)arg;
 
 	uthread_create(thread3, NULL);
-
-	printf("TEST: YIELDING 2\n");
 	uthread_yield();
-	printf("RE-RUNNING 2\n");
-
 	printf("thread2\n");
 }
 
@@ -45,16 +38,9 @@ void thread1(void *arg)
 	(void)arg;
 
 	uthread_create(thread2, NULL);
-
-	printf("TEST: YIELDING 1\n");
 	uthread_yield();
-	printf("RE-RUNNING 1\n");
-
 	printf("thread1\n");
-
-	printf("TEST: YIELDING 1\n");
 	uthread_yield();
-	printf("RE-RUNNING 1\n");
 }
 
 int main(void)

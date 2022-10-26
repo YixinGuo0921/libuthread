@@ -71,21 +71,10 @@ struct uthread_tcb *uthread_current(void)
 
 void uthread_yield(void)
 {
-        uthread_current();
-
-        queue_iterate(thread_queue, debug_print_queue);
-
-        queue_delete(thread_queue, running_tcb);        // Delete this thread from thread queue
-
-        queue_iterate(thread_queue, debug_print_queue);
-
-        running_tcb->state = READY;                     // Update this thread's state
-        queue_enqueue(thread_queue, running_tcb);       // Queue this thread to the back (context not updated yet)
-        
-        queue_iterate(thread_queue, debug_print_queue);
-        printf("\n");
-
-        uthread_ctx_switch(running_tcb->thread_ctx, idle_ctx);      // Switch to idle (updates running context)
+        queue_delete(thread_queue, uthread_current());          // Delete this thread from thread queue
+        running_tcb->state = READY;                             // Update this thread's state
+        queue_enqueue(thread_queue, running_tcb);               // Queue this thread to the back (context not updated yet)
+        uthread_ctx_switch(running_tcb->thread_ctx, idle_ctx);  // Switch to idle (updates running context)
 }
 
 void uthread_exit(void)
@@ -99,6 +88,8 @@ void uthread_exit(void)
 
         // Switch back to idle (main) context w/o saving
         setcontext(idle_ctx);
+
+        queue_iterate(thread_queue, debug_print_queue); //This should never run
 }
 
 int uthread_create(uthread_func_t func, void *arg)
