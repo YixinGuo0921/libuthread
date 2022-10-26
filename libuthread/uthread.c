@@ -15,11 +15,8 @@
 #define  EXITED 2
 
 struct uthread_tcb* running_tcb;
-struct uthread_tcb* initial_tcb;
 uthread_ctx_t* idle_ctx;
 queue_t thread_queue;
-
-
 
 /*TCB Data Structure*/
 struct uthread_tcb {
@@ -27,18 +24,6 @@ struct uthread_tcb {
         void* stack_ptr;
         int state;
 };
-
-/*Queue Functions*/
-static void set_first_in_queue(queue_t q, void* data)
-{
-        if (queue_length(q) == 0)
-                return;
-
-        struct uthread_tcb* tcb_tmp = data;
-        if (tcb_tmp->state == READY) {
-                initial_tcb = tcb_tmp;
-        }
-}
 
 static void set_running(queue_t q, void* data)
 {
@@ -84,6 +69,7 @@ void uthread_exit(void)
 
         // Free this thread
         uthread_ctx_destroy_stack(running_tcb->stack_ptr);
+        running_tcb->state = EXITED;
         free(running_tcb);
 
         // Switch back to idle (main) context w/o saving
@@ -120,23 +106,18 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
 
         // Initialize Idle & Initial Threads
         idle_ctx = malloc(sizeof(uthread_ctx_t));
-        initial_tcb = malloc(sizeof(struct uthread_tcb));
+        struct uthread_tcb* initial_tcb = malloc(sizeof(struct uthread_tcb));
 
         // Create initial TCB
         if (uthread_create(func, arg) != 0) return -1;
 
-        queue_iterate(thread_queue, set_first_in_queue); // Sets initial_tcb
-
         do {
-                initial_tcb->state = RUNNING;
-                uthread_ctx_switch(idle_ctx, initial_tcb->thread_ctx);
-                //queue_iterate(thread_queue, set_first_in_queue); // Sets initial_tcb
-
-                if (queue_length(thread_queue) == 0) break;
-
                 //If queue not empty, get next thread and queue it to the back
                 queue_dequeue(thread_queue, (void**)&initial_tcb);
                 queue_enqueue(thread_queue, initial_tcb);
+
+                initial_tcb->state = RUNNING;
+                uthread_ctx_switch(idle_ctx, initial_tcb->thread_ctx);
 
         } while (queue_length(thread_queue) != 0);
 
