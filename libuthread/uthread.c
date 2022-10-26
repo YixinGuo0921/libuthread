@@ -36,7 +36,7 @@ static void set_first_in_queue(queue_t q, void* data)
 
         struct uthread_tcb* tcb_tmp = data;
         if (tcb_tmp->state == READY) {
-                running_tcb = tcb_tmp;
+                initial_tcb = tcb_tmp;
         }
 }
 
@@ -51,6 +51,16 @@ static void set_running(queue_t q, void* data)
         }
 }
 
+static void debug_print_queue(queue_t q, void* data)
+{
+        if (queue_length(q) == 0)
+                return;
+
+        struct uthread_tcb* tcb_tmp = data;
+
+        printf("QL%d: %p, State: %d\n", queue_length(thread_queue), tcb_tmp->stack_ptr, tcb_tmp->state);
+}
+
 /* Thread Functions*/
 struct uthread_tcb *uthread_current(void)
 {
@@ -61,15 +71,21 @@ struct uthread_tcb *uthread_current(void)
 
 void uthread_yield(void)
 {
-        queue_delete(thread_queue, uthread_current());  // Delete this thread from thread queue
-        running_tcb->state = READY;                     // Update this thread's state
-        //printf("Yielded %p\n", running_tcb->stack_ptr);
-        queue_enqueue(thread_queue, running_tcb);       // Queue this thread to the back (context not updated yet)
-        uthread_ctx_switch(running_tcb->thread_ctx, idle_ctx);      // Switch to idle (updates running context)
+        uthread_current();
 
-        // After coming back, update this thread's state
-        //printf("Continuing %p\n", running_tcb->stack_ptr);
-        running_tcb->state = RUNNING;
+        queue_iterate(thread_queue, debug_print_queue);
+
+        queue_delete(thread_queue, running_tcb);        // Delete this thread from thread queue
+
+        queue_iterate(thread_queue, debug_print_queue);
+
+        running_tcb->state = READY;                     // Update this thread's state
+        queue_enqueue(thread_queue, running_tcb);       // Queue this thread to the back (context not updated yet)
+        
+        queue_iterate(thread_queue, debug_print_queue);
+        printf("\n");
+
+        uthread_ctx_switch(running_tcb->thread_ctx, idle_ctx);      // Switch to idle (updates running context)
 }
 
 void uthread_exit(void)
@@ -123,7 +139,14 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
         do {
                 initial_tcb->state = RUNNING;
                 uthread_ctx_switch(idle_ctx, initial_tcb->thread_ctx);
-                queue_iterate(thread_queue, set_first_in_queue); // Sets initial_tcb
+                //queue_iterate(thread_queue, set_first_in_queue); // Sets initial_tcb
+
+                if (queue_length(thread_queue) == 0) break;
+
+                //If queue not empty, get next thread and queue it to the back
+                queue_dequeue(thread_queue, (void**)&initial_tcb);
+                queue_enqueue(thread_queue, initial_tcb);
+
         } while (queue_length(thread_queue) != 0);
 
         return 0;
