@@ -7,44 +7,146 @@
 #include <sys/time.h>
 
 #include "private.h"
+#include "queue.h"
 #include "uthread.h"
 
+#define  READY 0
+#define  RUNNING 1
+#define  EXITED 2
+
+struct uthread_tcb* running_tcb;
+uthread_ctx_t* idle_ctx;
+queue_t thread_queue;
+
+/* TCB Data Structure */
 struct uthread_tcb {
-	/* TODO Phase 2 */
+        uthread_ctx_t* thread_ctx;
+        void* stack_ptr;
+        int state;
 };
 
+/* Queue Functions */
+static void set_running(queue_t q, void* data)
+{
+        if (queue_length(q) == 0)
+                return;
+
+        struct uthread_tcb* tcb_tmp = data;
+        if (tcb_tmp->state == RUNNING) {
+                running_tcb = tcb_tmp;
+        }
+}
+
+static void debug_print_queue(queue_t q, void* data)
+{
+        if (queue_length(q) == 0)
+                return;
+
+        struct uthread_tcb* tcb_tmp = data;
+
+        printf("QL%d: %p, State: %d\n", queue_length(thread_queue), tcb_tmp->stack_ptr, tcb_tmp->state);
+}
+
+/* Thread Functions */
 struct uthread_tcb *uthread_current(void)
 {
-	/* TODO Phase 2/4 */
+        // Sets running_tcb to the running thread
+        queue_iterate(thread_queue, set_running);
+
+        return running_tcb;
 }
 
 void uthread_yield(void)
 {
-	/* TODO Phase 2 */
+        // Create local pointer to safeguard reentrance
+        struct uthread_tcb* running_tcb = uthread_current();
+
+        // Delete this thread from thread queue
+        queue_delete(thread_queue, running_tcb);
+
+        // Queue this thread to the back (context not updated yet)
+        running_tcb->state = READY;
+        queue_enqueue(thread_queue, running_tcb);
+
+        // Switch to idle (updates running context)
+        uthread_ctx_switch(running_tcb->thread_ctx, idle_ctx);
 }
 
 void uthread_exit(void)
 {
-	/* TODO Phase 2 */
+        // Create local pointer to safeguard reentrance
+        struct uthread_tcb* running_tcb = uthread_current(); 
+
+        // Delete this thread from thread queue
+        queue_delete(thread_queue, running_tcb);
+
+        // Free this thread (unnecessary?)
+        uthread_ctx_destroy_stack(running_tcb->stack_ptr);
+        running_tcb->state = EXITED;
+        free(running_tcb);
+
+        // Switch back to idle (main) context w/o saving
+        setcontext(idle_ctx);
+
+        queue_iterate(thread_queue, debug_print_queue); //This should never run
 }
 
 int uthread_create(uthread_func_t func, void *arg)
 {
-	/* TODO Phase 2 */
+        // Allocate space for new context and stack pointer.
+        struct uthread_tcb* new_tcb = malloc(sizeof(struct uthread_tcb));
+        uthread_ctx_t* thread_ctx = malloc(sizeof(uthread_ctx_t));
+        void* stack_ptr = uthread_ctx_alloc_stack();
+
+        if (new_tcb == NULL || thread_ctx == NULL || stack_ptr == NULL) return -1; // malloc failed
+
+        if (uthread_ctx_init(thread_ctx, stack_ptr, func, arg) != 0) return -1;
+        
+        new_tcb->thread_ctx = thread_ctx;
+        new_tcb->stack_ptr = stack_ptr;
+        new_tcb->state = READY;
+        queue_enqueue(thread_queue, new_tcb);
+        return 0;
 }
 
-int uthread_start(uthread_func_t func, void *arg)
+int uthread_run(bool preempt, uthread_func_t func, void *arg)
 {
-	/* TODO Phase 2 */
+        /*Use preempt var to avoid gcc error(TEMPORARY)*/
+        if (preempt) return -1;
+
+        // Create FIFO queue
+        thread_queue = queue_create();
+
+        // Initialize Idle & Initial Threads
+        idle_ctx = malloc(sizeof(uthread_ctx_t));
+        struct uthread_tcb* initial_tcb = malloc(sizeof(struct uthread_tcb));
+
+        // Create initial TCB
+        if (uthread_create(func, arg) != 0) return -1;
+
+        do {
+                //Get next thread and queue it to the back (functionally the same as just reading the first element)
+                queue_dequeue(thread_queue, (void**)&initial_tcb);
+                queue_enqueue(thread_queue, initial_tcb);
+
+                initial_tcb->state = RUNNING;
+                uthread_ctx_switch(idle_ctx, initial_tcb->thread_ctx);
+
+        } while (queue_length(thread_queue) != 0);
+
+        return 0;
 }
 
 void uthread_block(void)
 {
-	/* TODO Phase 4 */
+        /* TODO Phase 4 */
 }
 
 void uthread_unblock(struct uthread_tcb *uthread)
 {
-	/* TODO Phase 4 */
+        /* TODO Phase 4 */
+
+        //TEMPORARY TO STOP ERRORS
+        if (uthread) return;
 }
 
