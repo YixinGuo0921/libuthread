@@ -1,10 +1,8 @@
 # Target librariy
 CC = gcc
 
-override CFLAGS += \
-	-Wall \
-	-Wextra\
-	-Werror
+# General gcc options
+CFLAGS	:= -Wall -Wextra -Werror
 
 OBJS = \
 	queue.o \
@@ -20,7 +18,7 @@ $(MAIN): $(OBJS)
 	ar rcs $(MAIN) $(OBJS)
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
 	rm -rf *.a *.o

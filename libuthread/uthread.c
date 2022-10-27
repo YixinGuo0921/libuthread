@@ -18,13 +18,14 @@ struct uthread_tcb* running_tcb;
 uthread_ctx_t* idle_ctx;
 queue_t thread_queue;
 
-/*TCB Data Structure*/
+/* TCB Data Structure */
 struct uthread_tcb {
         uthread_ctx_t* thread_ctx;
         void* stack_ptr;
         int state;
 };
 
+/* Queue Functions */
 static void set_running(queue_t q, void* data)
 {
         if (queue_length(q) == 0)
@@ -46,10 +47,11 @@ static void debug_print_queue(queue_t q, void* data)
         printf("QL%d: %p, State: %d\n", queue_length(thread_queue), tcb_tmp->stack_ptr, tcb_tmp->state);
 }
 
-/* Thread Functions*/
+/* Thread Functions */
 struct uthread_tcb *uthread_current(void)
 {
-        queue_iterate(thread_queue, set_running); // Sets running_tcb to the running thread
+        // Sets running_tcb to the running thread
+        queue_iterate(thread_queue, set_running);
 
         return running_tcb;
 }
@@ -57,7 +59,7 @@ struct uthread_tcb *uthread_current(void)
 void uthread_yield(void)
 {
         // Create local pointer to safeguard reentrance
-        struct uthread_tcb* running_tcb = uthread_current()
+        struct uthread_tcb* running_tcb = uthread_current();
 
         // Delete this thread from thread queue
         queue_delete(thread_queue, running_tcb);
