@@ -114,7 +114,7 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
         /*Use preempt var to avoid gcc error(TEMPORARY)*/
         if (preempt) return -1;
 
-        // Create FIFO queue
+        // Create FIFO queue, will ALWAYS hold threads unless exited
         thread_queue = queue_create();
 
         // Initialize Idle & Initial Threads

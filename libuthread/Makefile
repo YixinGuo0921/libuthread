@@ -8,7 +8,8 @@ OBJS = \
 	queue.o \
 	uthread.o \
 	context.o \
-	preempt.o
+	preempt.o \
+	sem.o
 
 MAIN := libuthread.a
 
