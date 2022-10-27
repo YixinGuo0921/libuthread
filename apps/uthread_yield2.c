@@ -8,12 +8,14 @@
  * thread3
  * thread2
  * thread1
+ * Returned!
  * 
  * If yield doesn't work, the order will be
  * 
  * thread1
  * thread2
  * thread3
+ * Returned!
  */
 
 #include <stdbool.h>
@@ -51,5 +53,6 @@ void thread1(void *arg)
 int main(void)
 {
 	uthread_run(false, thread1, NULL);
+	printf("Returned!\n");
 	return 0;
 }
