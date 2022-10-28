@@ -4,6 +4,13 @@ CC = gcc
 # General gcc options
 CFLAGS	:= -Wall -Wextra -Werror
 
+## Debug flag
+ifneq ($(D),1)
+CFLAGS	+= -O2
+else
+CFLAGS	+= -g
+endif
+
 OBJS = \
 	queue.o \
 	uthread.o \
