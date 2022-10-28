@@ -6,7 +6,6 @@
 #include "sem.h"
 #include "private.h"
 
-
 struct semaphore { //sem_t is a pointer to a struct semaphore
 	queue_t waiting_room;
 	unsigned int resource;
@@ -14,17 +13,16 @@ struct semaphore { //sem_t is a pointer to a struct semaphore
 
 sem_t sem_create(size_t count)
 {
-	sem_t new_semaphore = malloc(sizeof(struct semaphore));
-	new_semaphore->waiting_room = queue_create();
+	sem_t new_sem = malloc(sizeof(struct semaphore));
+	new_sem->waiting_room = queue_create();
 
-	new_semaphore->resource = count;
-	return new_semaphore;
+	new_sem->resource = count;
+	return new_sem;
 }
 
 int sem_destroy(sem_t sem)
 {
 	free(sem);
-
 	return 0;
 }
 

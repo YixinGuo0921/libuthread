@@ -13,7 +13,7 @@
 #include <sem.h>
 #include <uthread.h>
 
-#define MAXCOUNT 200
+#define MAXCOUNT 20
 
 struct test3 {
 	sem_t sem1;
