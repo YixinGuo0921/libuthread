@@ -12,9 +12,10 @@
 
 #define  READY 0
 #define  RUNNING 1
-#define  EXITED 2
+#define  BLOCKED 2
+#define  EXITED 3
 
-struct uthread_tcb* running_tcb;
+static struct uthread_tcb* running_tcb;
 uthread_ctx_t* idle_ctx;
 queue_t thread_queue;
 
@@ -26,7 +27,7 @@ struct uthread_tcb {
 };
 
 /* Queue Functions */
-static void set_running(queue_t q, void* data)
+static void set_running_thread(queue_t q, void* data)
 {
         if (queue_length(q) == 0)
                 return;
@@ -51,39 +52,41 @@ static void debug_print_queue(queue_t q, void* data)
 struct uthread_tcb *uthread_current(void)
 {
         // Sets running_tcb to the running thread
-        queue_iterate(thread_queue, set_running);
+        if (running_tcb->state != RUNNING)
+                queue_iterate(thread_queue, set_running_thread);
 
         return running_tcb;
 }
 
 void uthread_yield(void)
 {
-        // Create local pointer to safeguard reentrance
-        struct uthread_tcb* running_tcb = uthread_current();
+        // Safeguard from interruption
+        struct uthread_tcb* current_tcb = uthread_current();
 
         // Delete this thread from thread queue
-        queue_delete(thread_queue, running_tcb);
+        queue_delete(thread_queue, current_tcb);
 
         // Queue this thread to the back (context not updated yet)
-        running_tcb->state = READY;
-        queue_enqueue(thread_queue, running_tcb);
+        queue_enqueue(thread_queue, current_tcb);
 
         // Switch to idle (updates running context)
-        uthread_ctx_switch(running_tcb->thread_ctx, idle_ctx);
+        current_tcb->state = READY;
+        uthread_ctx_switch(current_tcb->thread_ctx, idle_ctx);
+        current_tcb->state = RUNNING;
 }
 
 void uthread_exit(void)
 {
-        // Create local pointer to safeguard reentrance
-        struct uthread_tcb* running_tcb = uthread_current(); 
+        // Safeguard from interruption
+        struct uthread_tcb* current_tcb = uthread_current();
 
         // Delete this thread from thread queue
-        queue_delete(thread_queue, running_tcb);
+        queue_delete(thread_queue, current_tcb);
 
         // Free this thread (unnecessary?)
-        uthread_ctx_destroy_stack(running_tcb->stack_ptr);
-        running_tcb->state = EXITED;
-        free(running_tcb);
+        uthread_ctx_destroy_stack(current_tcb->stack_ptr);
+        current_tcb->state = EXITED;
+        free(current_tcb);
 
         // Switch back to idle (main) context w/o saving
         setcontext(idle_ctx);
@@ -121,6 +124,9 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
         idle_ctx = malloc(sizeof(uthread_ctx_t));
         struct uthread_tcb* initial_tcb = malloc(sizeof(struct uthread_tcb));
 
+        // Initialize running thread
+        running_tcb = initial_tcb;
+
         // Create initial TCB
         if (uthread_create(func, arg) != 0) return -1;
 
@@ -139,14 +145,19 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
 
 void uthread_block(void)
 {
-        /* TODO Phase 4 */
+        // Safeguard from interruption
+        struct uthread_tcb* current_tcb = uthread_current();
+
+        // A blocked tcb should never be found in the thread_queue
+        queue_delete(thread_queue, current_tcb);
+        current_tcb->state = BLOCKED;
+
+        uthread_ctx_switch(current_tcb->thread_ctx, idle_ctx);
 }
 
 void uthread_unblock(struct uthread_tcb *uthread)
 {
-        /* TODO Phase 4 */
-
-        //TEMPORARY TO STOP ERRORS
-        if (uthread) return;
+        uthread->state = READY;
+        queue_enqueue(thread_queue, uthread);
 }
 
