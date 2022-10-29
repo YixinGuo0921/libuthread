@@ -11,8 +11,6 @@ struct semaphore { //sem_t is a pointer to a struct semaphore
 	unsigned int resource;
 };
 
-extern void set_blocked(queue_t q, void* data);
-
 sem_t sem_create(size_t count)
 {
 	sem_t new_sem = malloc(sizeof(struct semaphore));

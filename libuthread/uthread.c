@@ -132,8 +132,10 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
 
         do {
                 //Get next thread and queue it to the back (functionally the same as just reading the first element)
-                queue_dequeue(thread_queue, (void**)&initial_tcb);
-                queue_enqueue(thread_queue, initial_tcb);
+                do {
+                        queue_dequeue(thread_queue, (void**)&initial_tcb);
+                        queue_enqueue(thread_queue, initial_tcb);
+                } while (initial_tcb->state != BLOCKED)
 
                 initial_tcb->state = RUNNING;
                 uthread_ctx_switch(idle_ctx, initial_tcb->thread_ctx);
@@ -149,7 +151,6 @@ void uthread_block(void)
         struct uthread_tcb* current_tcb = uthread_current();
 
         // A blocked tcb should never be found in the thread_queue
-        queue_delete(thread_queue, current_tcb);
         current_tcb->state = BLOCKED;
 
         uthread_ctx_switch(current_tcb->thread_ctx, idle_ctx);
@@ -158,6 +159,5 @@ void uthread_block(void)
 void uthread_unblock(struct uthread_tcb *uthread)
 {
         uthread->state = READY;
-        queue_enqueue(thread_queue, uthread);
 }
 
