@@ -11,6 +11,8 @@ struct semaphore { //sem_t is a pointer to a struct semaphore
 	unsigned int resource;
 };
 
+extern void set_blocked(queue_t q, void* data);
+
 sem_t sem_create(size_t count)
 {
 	sem_t new_sem = malloc(sizeof(struct semaphore));
@@ -31,16 +33,19 @@ int sem_down(sem_t sem)
 	// Get caller thread
 	struct uthread_tcb* caller_tcb = uthread_current();
 
-	// If resources AREN'T available, block caller thread and go to next IN THREAD_QUEUE
-	if (sem->resource == 0) {
-		queue_enqueue(sem->waiting_room, caller_tcb);
-		uthread_block();
-		return -1;
+	// If resources are available, take one and continue run
+	if (sem->resource != 0) {
+		sem->resource--;
+		return 0;
 	}
 
-	// If there are resources available, take one and continue run
-	sem->resource--;
-	return 0;
+	/* NO RESOURCES AVAILABLE */
+
+	// block caller thread and go to next IN THREAD_QUEUE
+	queue_enqueue(sem->waiting_room, caller_tcb);
+	uthread_block();
+
+	return -1;
 }
 
 int sem_up(sem_t sem)
