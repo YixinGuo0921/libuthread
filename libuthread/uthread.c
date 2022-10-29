@@ -16,8 +16,8 @@
 #define  EXITED 3
 
 static struct uthread_tcb* running_tcb;
+static queue_t thread_queue;
 uthread_ctx_t* idle_ctx;
-queue_t thread_queue;
 
 /* TCB Data Structure */
 struct uthread_tcb {
@@ -38,7 +38,7 @@ static void set_running_thread(queue_t q, void* data)
         }
 }
 
-static void debug_print_queue(queue_t q, void* data)
+void debug_print_queue(queue_t q, void* data)
 {
         if (queue_length(q) == 0)
                 return;
@@ -48,7 +48,7 @@ static void debug_print_queue(queue_t q, void* data)
         printf("QL%d: %p, State: %d\n", queue_length(thread_queue), tcb_tmp->stack_ptr, tcb_tmp->state);
 }
 
-/* Thread Functions */
+/* Thread Header Functions */
 struct uthread_tcb *uthread_current(void)
 {
         // Sets running_tcb to the running thread
@@ -135,7 +135,9 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
                 do {
                         queue_dequeue(thread_queue, (void**)&initial_tcb);
                         queue_enqueue(thread_queue, initial_tcb);
-                } while (initial_tcb->state == BLOCKED);
+
+                } while (initial_tcb->state == BLOCKED); // state is RUNNING
+
 
                 initial_tcb->state = RUNNING;
                 uthread_ctx_switch(idle_ctx, initial_tcb->thread_ctx);
@@ -147,17 +149,14 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
 
 void uthread_block(void)
 {
-        // Safeguard from interruption
-        struct uthread_tcb* current_tcb = uthread_current();
-
-        // A blocked tcb should never be found in the thread_queue
-        current_tcb->state = BLOCKED;
-
-        uthread_ctx_switch(current_tcb->thread_ctx, idle_ctx);
+        /* TODO Phase 4 */
 }
 
 void uthread_unblock(struct uthread_tcb *uthread)
 {
-        uthread->state = READY;
+        //TEMPORARY to stop gcc errors
+        (void)uthread;
+
+        /* TODO Phase 4 */
 }
 
