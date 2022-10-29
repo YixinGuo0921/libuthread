@@ -135,7 +135,7 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
                 do {
                         queue_dequeue(thread_queue, (void**)&initial_tcb);
                         queue_enqueue(thread_queue, initial_tcb);
-                } while (initial_tcb->state != BLOCKED)
+                } while (initial_tcb->state == BLOCKED);
 
                 initial_tcb->state = RUNNING;
                 uthread_ctx_switch(idle_ctx, initial_tcb->thread_ctx);
