@@ -19,6 +19,7 @@
 
 struct itimerval it_val, it_val_old;
 struct sigaction sa_new, sa_old;
+sigset_t ss;
 
 void alarm_handler(int signum)
 {
@@ -30,12 +31,12 @@ void alarm_handler(int signum)
 
 void preempt_disable(void)
 {
-	/* TODO Phase 4 */
+	sigprocmask(SIG_BLOCK, &ss, NULL);
 }
 
 void preempt_enable(void)
 {
-	/* TODO Phase 4 */
+	sigprocmask(SIG_UNBLOCK, &ss, NULL);
 }
 
 void preempt_start(bool preempt)
@@ -49,6 +50,11 @@ void preempt_start(bool preempt)
 	sigemptyset(&sa_new.sa_mask);
 	sa_new.sa_flags = 0;
 	sigaction(SIGVTALRM, &sa_new, &sa_old);
+
+	// Prepare for disabling and enabling
+	sigemptyset(&ss);
+	sigaddset(&ss, SIGVTALRM);
+	sigaddset(&ss, SIGALRM);
 
 	// Create alarm that pops off every 100ms
 	it_val.it_value.tv_sec = 0;
@@ -64,9 +70,10 @@ void preempt_start(bool preempt)
 
 void preempt_stop(void)
 {
-	// Reset signal handling to default
+	// Restore previous signal handler
 	sigaction(SIGALRM, &sa_old, NULL);
 
+	// Restore previous timer config
 	if (setitimer(ITIMER_REAL, &it_val_old, NULL) == -1) {
 		perror("setitimer");
 		exit(1);
