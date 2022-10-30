@@ -7,7 +7,8 @@ programs := \
 	sem_buffer.x \
 	sem_count.x \
 	sem_prime.x \
-	sem_simple.x
+	sem_simple.x \
+	sem_corner.x
 
 # FIXME: Remove this in student version
 #programs += \

@@ -10,16 +10,23 @@
 #include "queue.h"
 #include "uthread.h"
 
-#define  READY 0
-#define  RUNNING 1
-#define  BLOCKED 2
-#define  EXITED 3
+#define  READY          0 // Threads waiting for their turn
+#define  RUNNING        1 // The current thread
+#define  BLOCKED        2 // Threads that are semaphore blocked
+#define  UNBLOCKED      3 // Like READY, but was previously waiting for a semaphore
+#define  EXITED         4 // Threads that have fully completed (unused conditionally)
 
 static struct uthread_tcb* running_tcb;
-static queue_t thread_queue;
+queue_t thread_queue;
 uthread_ctx_t* idle_ctx;
 
-/* TCB Data Structure */
+/* Data Structure */
+
+/*
+* @thread_ctx: The current context of a thread (i.e. its PC and associated function)
+* @stack_ptr: pointer to the thread's stack
+* @state: The tracker for which state the thread is in (acts as extra context)
+*/
 struct uthread_tcb {
         uthread_ctx_t* thread_ctx;
         void* stack_ptr;
@@ -83,7 +90,7 @@ void uthread_exit(void)
         // Delete this thread from thread queue
         queue_delete(thread_queue, current_tcb);
 
-        // Free this thread (unnecessary?)
+        // Mark thread as exited & free
         uthread_ctx_destroy_stack(current_tcb->stack_ptr);
         current_tcb->state = EXITED;
         free(current_tcb);
@@ -143,6 +150,8 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
                 uthread_ctx_switch(idle_ctx, initial_tcb->thread_ctx);
 
         } while (queue_length(thread_queue) != 0);
+
+        queue_destroy(thread_queue);
 
         return 0;
 }
