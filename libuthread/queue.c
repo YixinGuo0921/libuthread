@@ -31,7 +31,7 @@ node* newNode(void* data)
 
 queue_t queue_create(void)
 {
-        queue_t queue = (queue_t)malloc(sizeof(queue_t));
+        queue_t queue = (queue_t)malloc(sizeof(struct queue));
 
         queue->size = 0;
         queue->first = queue->last = NULL;
