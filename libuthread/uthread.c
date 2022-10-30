@@ -33,7 +33,7 @@ struct uthread_tcb {
         int state;
 };
 
-/* Queue Functions */
+/* queue_iterate() callback functions */
 static void set_running_thread(queue_t q, void* data)
 {
         if (queue_length(q) == 0)
@@ -142,9 +142,7 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
                 do {
                         queue_dequeue(thread_queue, (void**)&initial_tcb);
                         queue_enqueue(thread_queue, initial_tcb);
-
-                } while (initial_tcb->state == BLOCKED); // state is RUNNING
-
+                } while (initial_tcb->state == BLOCKED); // UNBLOCKED allowed
 
                 initial_tcb->state = RUNNING;
                 uthread_ctx_switch(idle_ctx, initial_tcb->thread_ctx);

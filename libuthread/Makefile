@@ -4,15 +4,11 @@ CC = gcc
 # General gcc options
 CFLAGS	:= -Wall -Wextra -Werror
 
-OBJS = \
-	queue.o \
-	uthread.o \
-	context.o \
-	preempt.o \
-	sem.o
+SRC=$(wildcard *.c)
+
+OBJS=$(patsubst %.c,%.o,$(SRC))
 
 MAIN := libuthread.a
-
 all: $(MAIN)
 
 $(MAIN): $(OBJS)

@@ -8,13 +8,8 @@ programs := \
 	sem_count.x \
 	sem_prime.x \
 	sem_simple.x \
-	sem_corner.x
-
-# FIXME: Remove this in student version
-#programs += \
-	queue_usage_example.x \
-	queue_grader.x \
-	uthread_preempt.x \
+	sem_corner.x \
+	#uthread_preempt.x
 
 # User-level thread library
 UTHREADLIB := libuthread

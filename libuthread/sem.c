@@ -92,7 +92,7 @@ int sem_down(sem_t sem)
         // If resources are available, take one and continue run
         if (sem->resource != 0) {
                 sem->resource--;
-                // check if threads were waiting for that resource (corner case protection)
+                // check if there were threads waiting for that resource (corner case protection)
                 queue_iterate(sem->released_threads, handle_unblocked);
                 return 0;
         }
@@ -106,7 +106,7 @@ int sem_down(sem_t sem)
         caller_tcb->state = BLOCKED;
         uthread_ctx_switch(caller_tcb->thread_ctx, idle_ctx);
 
-        sem->resource--; // Resources should always exist when resuming a blocked thread (thanks to corner case protection)
+        sem->resource--;
 
         return 0;
 }
