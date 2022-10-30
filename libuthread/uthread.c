@@ -10,6 +10,8 @@
 #include "queue.h"
 #include "uthread.h"
 
+#define UNUSED(x) (void)(x)
+
 #define  READY          0 // Threads waiting for their turn
 #define  RUNNING        1 // The current thread
 #define  BLOCKED        2 // Threads that are semaphore blocked
@@ -34,16 +36,6 @@ struct uthread_tcb {
 };
 
 /* queue_iterate() callback functions */
-static void set_running_thread(queue_t q, void* data)
-{
-        if (queue_length(q) == 0)
-                return;
-
-        struct uthread_tcb* tcb_tmp = data;
-        if (tcb_tmp->state == RUNNING) {
-                running_tcb = tcb_tmp;
-        }
-}
 
 void debug_print_queue(queue_t q, void* data)
 {
@@ -58,11 +50,7 @@ void debug_print_queue(queue_t q, void* data)
 /* Thread Header Functions */
 struct uthread_tcb *uthread_current(void)
 {
-        // Sets running_tcb to the running thread
-        if (running_tcb->state != RUNNING)
-                queue_iterate(thread_queue, set_running_thread);
-
-        return running_tcb;
+        return running_tcb; // set whenever idle chooses a new thread
 }
 
 void uthread_yield(void)
@@ -115,6 +103,7 @@ int uthread_create(uthread_func_t func, void *arg)
         new_tcb->thread_ctx = thread_ctx;
         new_tcb->stack_ptr = stack_ptr;
         new_tcb->state = READY;
+
         queue_enqueue(thread_queue, new_tcb);
         return 0;
 }
@@ -122,7 +111,7 @@ int uthread_create(uthread_func_t func, void *arg)
 int uthread_run(bool preempt, uthread_func_t func, void *arg)
 {
         /*Use preempt var to avoid gcc error(TEMPORARY)*/
-        if (preempt) return -1;
+        preempt_start(preempt);
 
         // Create FIFO queue, will ALWAYS hold threads unless exited
         thread_queue = queue_create();
@@ -130,9 +119,6 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
         // Initialize Idle & Initial Threads
         idle_ctx = malloc(sizeof(uthread_ctx_t));
         struct uthread_tcb* initial_tcb = malloc(sizeof(struct uthread_tcb));
-
-        // Initialize running thread
-        running_tcb = initial_tcb;
 
         // Create initial TCB
         if (uthread_create(func, arg) != 0) return -1;
@@ -145,9 +131,14 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
                 } while (initial_tcb->state == BLOCKED); // UNBLOCKED allowed
 
                 initial_tcb->state = RUNNING;
+                running_tcb = initial_tcb;
                 uthread_ctx_switch(idle_ctx, initial_tcb->thread_ctx);
 
         } while (queue_length(thread_queue) != 0);
+
+        // Clean-up
+        if(preempt)
+                preempt_stop();
 
         queue_destroy(thread_queue);
 
@@ -162,7 +153,7 @@ void uthread_block(void)
 void uthread_unblock(struct uthread_tcb *uthread)
 {
         //TEMPORARY to stop gcc errors
-        (void)uthread;
+        UNUSED(uthread);
 
         /* TODO Phase 4 */
 }

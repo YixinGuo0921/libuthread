@@ -19,7 +19,7 @@ extern uthread_ctx_t* idle_ctx;
 
 /*
 * @waiting_room: All the threads that are waiting for this semaphore's resource
-* @released_threads: All the threads that were initially blocked via semaphore. Empties whenever a resource is taken (corner case)
+* @released_threads: All the threads that were initially blocked via semaphore. Resets whenever a resource is taken normally (corner case)
 * @resource: the count of resources a semaphore has
 */
 struct semaphore {
