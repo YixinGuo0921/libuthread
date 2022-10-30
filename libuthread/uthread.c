@@ -36,7 +36,6 @@ struct uthread_tcb {
 };
 
 /* queue_iterate() callback functions */
-
 void debug_print_queue(queue_t q, void* data)
 {
         if (queue_length(q) == 0)
@@ -96,9 +95,11 @@ int uthread_create(uthread_func_t func, void *arg)
         uthread_ctx_t* thread_ctx = malloc(sizeof(uthread_ctx_t));
         void* stack_ptr = uthread_ctx_alloc_stack();
 
-        if (new_tcb == NULL || thread_ctx == NULL || stack_ptr == NULL) return -1; // malloc failed
+        if (new_tcb == NULL || thread_ctx == NULL || stack_ptr == NULL) // malloc failed
+                return -1; 
 
-        if (uthread_ctx_init(thread_ctx, stack_ptr, func, arg) != 0) return -1;
+        if (uthread_ctx_init(thread_ctx, stack_ptr, func, arg) != 0)
+                return -1;
         
         new_tcb->thread_ctx = thread_ctx;
         new_tcb->stack_ptr = stack_ptr;
@@ -120,8 +121,12 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
         idle_ctx = malloc(sizeof(uthread_ctx_t));
         struct uthread_tcb* initial_tcb = malloc(sizeof(struct uthread_tcb));
 
+        if (idle_ctx == NULL || initial_tcb == NULL) // malloc failed
+                return -1;
+
         // Create initial TCB
-        if (uthread_create(func, arg) != 0) return -1;
+        if (uthread_create(func, arg) != 0)
+                return -1;
 
         do {
                 //Get next thread and queue it to the back (functionally the same as just reading the first element)

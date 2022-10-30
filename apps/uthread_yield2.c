@@ -5,17 +5,17 @@
  * should get returned to before its child is executed. The way the printing,
  * thread creation and yielding is done, the program should output:
  *
- * thread3
- * thread2
- * thread1
- * Returned!
+ *	thread3
+ *	thread2
+ *	thread1
+ *	Returned!
  * 
  * If yield doesn't work, the order will be
  * 
- * thread1
- * thread2
- * thread3
- * Returned!
+ *	thread1
+ *	thread2
+ *	thread3
+ *	Returned!
  */
 
 #include <stdbool.h>
