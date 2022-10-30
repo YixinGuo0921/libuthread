@@ -11,14 +11,11 @@ else
 CFLAGS	+= -g
 endif
 
-OBJS = \
-	queue.o \
-	uthread.o \
-	context.o \
-	preempt.o
+SRC=$(wildcard *.c)
+
+OBJS=$(patsubst %.c,%.o,$(SRC))
 
 MAIN := libuthread.a
-
 all: $(MAIN)
 
 $(MAIN): $(OBJS)
