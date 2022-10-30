@@ -15,6 +15,15 @@
  */
 #define HZ 100
 
+struct itimerval timer_new, timer_old;
+struct sigaction sa_new, sa_old;
+
+void alarm_handler(int signum)
+{
+	(void)signum;
+	// do stuff
+}
+
 void preempt_disable(void)
 {
 	/* TODO Phase 4 */
@@ -27,9 +36,26 @@ void preempt_enable(void)
 
 void preempt_start(bool preempt)
 {
-	/* TODO Phase 4 */
-	//TEMPORARY TO STOP ERRORS
-	if (preempt) return;
+	// Don't set up if not using
+	if (!preempt)
+		return;
+
+	//handle using sigaction()
+	sa_new.sa_handler = &alarm_handler;
+	sigemptyset(&sa_new.sa_mask);
+	sa_new.sa_flags = 0;
+	sigaction(SIGALRM, &sa_new, &sa_old);
+
+	// Create alarm that pops off every 100ms
+	timer_new.it_value.tv_sec = 0;
+	timer_new.it_value.tv_usec = 1000000 / HZ;
+	timer_new.it_interval.tv_sec = 0;
+	timer_new.it_interval.tv_usec = 1000000 / HZ;
+
+	if (setitimer(ITIMER_VIRTUAL, &timer_new, &timer_old) == -1) {
+		perror("setitimer");
+		exit(1);
+	}
 }
 
 void preempt_stop(void)

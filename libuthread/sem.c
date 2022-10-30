@@ -34,7 +34,7 @@ struct uthread_tcb {
         int state;
 };
 
-/* queue_iterate Functions*/
+/* queue_iterate() callback functions*/
 void handle_unblocked(queue_t q, void* data)
 {
         if (queue_length(q) == 0)
