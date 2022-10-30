@@ -9,19 +9,23 @@
 #include "private.h"
 #include "uthread.h"
 
+#define UNUSED(x) (void)(x)
+
 /*
  * Frequency of preemption
  * 100Hz is 100 times per second
  */
 #define HZ 100
 
-struct itimerval it_val;
+struct itimerval it_val, it_val_old;
 struct sigaction sa_new, sa_old;
 
 void alarm_handler(int signum)
 {
-	(void)signum;
-	// do stuff
+	UNUSED(signum);
+	long count = 0;
+	//uthread_yield();
+	printf("Preempt count is %ld\n", ++count);
 }
 
 void preempt_disable(void)
@@ -52,7 +56,8 @@ void preempt_start(bool preempt)
 	it_val.it_interval.tv_sec = 0;
 	it_val.it_interval.tv_usec = 1000000 / HZ;
 
-	if (setitimer(ITIMER_VIRTUAL, &it_val, NULL) == -1) {
+
+	if (setitimer(ITIMER_VIRTUAL, &it_val, &it_val_old) == -1) {
 		perror("setitimer");
 		exit(1);
 	}
@@ -63,11 +68,7 @@ void preempt_stop(void)
 	// Reset signal handling to default
 	sigaction(SIGALRM, &sa_old, NULL);
 
-	// Set timer s.t. it stops running
-	it_val.it_value.tv_sec = 0;
-	it_val.it_value.tv_usec = 0;
-
-	if (setitimer(ITIMER_VIRTUAL, &it_val, NULL) == -1) {
+	if (setitimer(ITIMER_REAL, &it_val_old, NULL) == -1) {
 		perror("setitimer");
 		exit(1);
 	}
