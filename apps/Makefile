@@ -5,6 +5,7 @@ programs := \
 	uthread_yield.x \
 	uthread_yield2.x \
 	sem_buffer.x \
+	sem_buffer_preempt.x \
 	sem_count.x \
 	sem_prime.x \
 	sem_prime_preempt.x \
