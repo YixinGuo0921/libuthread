@@ -1,21 +1,21 @@
 /*
- * Thread creation and yielding test
+ * Thread preemption test
  *
- * Tests the creation of multiples threads and the fact that a parent thread
- * should get returned to before its child is executed. The way the printing,
- * thread creation and yielding is done, the program should output:
+ * Tests the preemption feature of our multi-threading library. If preemption does not work, the
+ * terminal will only read
  *
- *	thread3
- *	thread2
- *	thread1
- *	Returned!
+ *	I am a hog!
+ *	I am a hog!
+ *	I am a hog!
+ *	...
  * 
- * If yield doesn't work, the order will be
- * 
- *	thread1
- *	thread2
- *	thread3
- *	Returned!
+ * If it does, then the terminal will read
+ *
+ *	I am a hog!
+ *	I am a hog!
+ *	...
+ *	Not anymore >:)
+ *	
  */
 
 #include <stdbool.h>
@@ -24,20 +24,14 @@
 
 #include <uthread.h>
 
-void thread3(void *arg)
-{
-	(void)arg;
-
-	printf("thread3\n");
-}
+#define MILLION 1000000
 
 void thread2(void *arg)
 {
 	(void)arg;
 
-	uthread_create(thread3, NULL);
-	uthread_yield();
-	printf("thread2\n");
+	printf("Not anymore >:)\n");
+	exit(EXIT_SUCCESS);
 }
 
 void thread1(void *arg)
@@ -45,9 +39,11 @@ void thread1(void *arg)
 	(void)arg;
 
 	uthread_create(thread2, NULL);
-	uthread_yield();
-	uthread_yield();
-	printf("thread1\n");
+
+	while (1) {
+		printf("I am a hog!\n");
+		for (int i = 0; i < MILLION; ++i);
+	}
 }
 
 int main(void)

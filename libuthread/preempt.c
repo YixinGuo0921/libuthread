@@ -21,11 +21,12 @@ struct itimerval it_val, it_val_old;
 struct sigaction sa_new, sa_old;
 sigset_t ss;
 
+long count = 0;
+
 void alarm_handler(int signum)
 {
 	UNUSED(signum);
-	long count = 0;
-	//uthread_yield();
+	uthread_yield();
 	printf("Preempt count is %ld\n", ++count);
 }
 
@@ -41,20 +42,22 @@ void preempt_enable(void)
 
 void preempt_start(bool preempt)
 {
+	// Initialize set s.t. preempt_{disable, enable} doesn't crash process
+	sigemptyset(&ss);
+
 	// Don't set up if not using
 	if (!preempt)
 		return;
 
-	//handle using sigaction()
+	// Prepare signals to block
+	sigaddset(&ss, SIGVTALRM);
+	sigaddset(&ss, SIGALRM);
+
+	// Handle using sigaction()
 	sa_new.sa_handler = &alarm_handler;
 	sigemptyset(&sa_new.sa_mask);
 	sa_new.sa_flags = 0;
 	sigaction(SIGVTALRM, &sa_new, &sa_old);
-
-	// Prepare for disabling and enabling
-	sigemptyset(&ss);
-	sigaddset(&ss, SIGVTALRM);
-	sigaddset(&ss, SIGALRM);
 
 	// Create alarm that pops off every 100ms
 	it_val.it_value.tv_sec = 0;
@@ -70,6 +73,8 @@ void preempt_start(bool preempt)
 
 void preempt_stop(void)
 {
+	preempt_disable();
+
 	// Restore previous signal handler
 	sigaction(SIGALRM, &sa_old, NULL);
 
@@ -78,5 +83,7 @@ void preempt_stop(void)
 		perror("setitimer");
 		exit(1);
 	}
+
+	preempt_enable();
 }
 

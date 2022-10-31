@@ -35,17 +35,6 @@ struct uthread_tcb {
         int state;
 };
 
-/* queue_iterate() callback functions */
-void debug_print_queue(queue_t q, void* data)
-{
-        if (queue_length(q) == 0)
-                return;
-
-        struct uthread_tcb* tcb_tmp = data;
-
-        printf("QL%d: %p, State: %d\n", queue_length(thread_queue), tcb_tmp->stack_ptr, tcb_tmp->state);
-}
-
 /* Thread Header Functions */
 struct uthread_tcb *uthread_current(void)
 {
@@ -54,24 +43,19 @@ struct uthread_tcb *uthread_current(void)
 
 void uthread_yield(void)
 {
-        // Safeguard from interruption
         struct uthread_tcb* current_tcb = uthread_current();
 
-        // Delete this thread from thread queue
+        // Queue to back and change state
         queue_delete(thread_queue, current_tcb);
-
-        // Queue this thread to the back (context not updated yet)
         queue_enqueue(thread_queue, current_tcb);
-
-        // Switch to idle (updates running context)
         current_tcb->state = READY;
+
         uthread_ctx_switch(current_tcb->thread_ctx, idle_ctx);
         current_tcb->state = RUNNING;
 }
 
 void uthread_exit(void)
 {
-        // Safeguard from interruption
         struct uthread_tcb* current_tcb = uthread_current();
 
         // Delete this thread from thread queue
@@ -84,8 +68,6 @@ void uthread_exit(void)
 
         // Switch back to idle (main) context w/o saving
         setcontext(idle_ctx);
-
-        queue_iterate(thread_queue, debug_print_queue); //This should never run
 }
 
 int uthread_create(uthread_func_t func, void *arg)
@@ -98,12 +80,16 @@ int uthread_create(uthread_func_t func, void *arg)
         if (new_tcb == NULL || thread_ctx == NULL || stack_ptr == NULL) // malloc failed
                 return -1; 
 
+        preempt_disable();
+
         if (uthread_ctx_init(thread_ctx, stack_ptr, func, arg) != 0)
                 return -1;
         
         new_tcb->thread_ctx = thread_ctx;
         new_tcb->stack_ptr = stack_ptr;
         new_tcb->state = READY;
+
+        preempt_enable();
 
         queue_enqueue(thread_queue, new_tcb);
         return 0;
@@ -114,7 +100,7 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
         /*Use preempt var to avoid gcc error(TEMPORARY)*/
         preempt_start(preempt);
 
-        // Create FIFO queue, will ALWAYS hold threads unless exited
+        // thread_queue will ALWAYS hold threads unless exited
         thread_queue = queue_create();
 
         // Initialize Idle & Initial Threads
@@ -129,6 +115,8 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
                 return -1;
 
         do {
+                preempt_disable();
+
                 //Get next thread and queue it to the back (functionally the same as just reading the first element)
                 do {
                         queue_dequeue(thread_queue, (void**)&initial_tcb);
@@ -137,6 +125,9 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
 
                 initial_tcb->state = RUNNING;
                 running_tcb = initial_tcb;
+
+                preempt_enable();
+
                 uthread_ctx_switch(idle_ctx, initial_tcb->thread_ctx);
 
         } while (queue_length(thread_queue) != 0);
