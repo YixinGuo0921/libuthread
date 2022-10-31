@@ -43,7 +43,9 @@ struct uthread_tcb *uthread_current(void)
 
 void uthread_yield(void)
 {
+        preempt_disable();
         struct uthread_tcb* current_tcb = uthread_current();
+        preempt_enable();
 
         // Queue to back and change state
         queue_delete(thread_queue, current_tcb);
@@ -56,10 +58,13 @@ void uthread_yield(void)
 
 void uthread_exit(void)
 {
+        preempt_disable();
         struct uthread_tcb* current_tcb = uthread_current();
 
         // Delete this thread from thread queue
         queue_delete(thread_queue, current_tcb);
+
+        preempt_enable();
 
         // Mark thread as exited & free
         uthread_ctx_destroy_stack(current_tcb->stack_ptr);

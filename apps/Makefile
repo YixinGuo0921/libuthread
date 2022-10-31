@@ -9,7 +9,7 @@ programs := \
 	sem_prime.x \
 	sem_simple.x \
 	sem_corner.x \
-	uthread_preempt.x
+	test_preempt.x
 
 # User-level thread library
 UTHREADLIB := libuthread

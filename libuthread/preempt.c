@@ -27,7 +27,6 @@ void alarm_handler(int signum)
 {
 	UNUSED(signum);
 	uthread_yield();
-	printf("Preempt count is %ld\n", ++count);
 }
 
 void preempt_disable(void)

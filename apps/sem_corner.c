@@ -1,29 +1,44 @@
 /*
  * Semaphore corner case test
  *
- * Should forever wait after printing
+ * Should print the following, with a 3 second delay where indicated:
  * 
- *         thread2
- *         thread3
+ *      thread2
+ *      thread3
+ *	<wait 3 seconds>
+ *	Kirby Super Star Ultra
  * 
- * If the output is
+ * then exit. If the output is
  * 
- *         thread2
- *         thread3
- *         thread1
+ *      thread2
+ *      thread3
+ *      thread1
  * 
- * then corner case protection did not work. 
+ * followed by immediate termination, then corner case protection did not work. 
  */
 
 #include <limits.h>
+#include <signal.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/time.h>
 
 #include <sem.h>
 #include <uthread.h>
 
+#define UNUSED(x) (void)(x)
+
 int total;
 sem_t sem;
+
+void test_handler(int signum)
+{
+	UNUSED(signum);
+
+	printf("Kirby Super Star Ultra\n");
+	exit(EXIT_SUCCESS);
+}
 
 static void thread3(void *arg)
 {
@@ -54,8 +69,18 @@ static void thread1(void *arg)
 
 int main(void)
 {
+	struct sigaction sa;
 	sem = sem_create(0);
 	total = 0;
+
+	/* Set up handler for alarm */
+	sa.sa_handler = test_handler;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+	sigaction(SIGALRM, &sa, NULL);
+
+	/* Configure alarm */
+	alarm(3);
 
 	uthread_run(false, thread1, NULL);
 
