@@ -76,6 +76,7 @@ int sem_destroy(sem_t sem)
 
         queue_iterate(sem->released_threads, empty_queue);
         queue_destroy(sem->released_threads);
+
         preempt_enable();
         free(sem);
 
@@ -95,7 +96,7 @@ int sem_down(sem_t sem)
         // If resources are available, take one and continue run
         if (sem->resource != 0) {
                 sem->resource--;
-                // check if there were threads waiting for that resource (corner case protection)
+                // check if any threads were waiting for that resource (corner case protection)
                 queue_iterate(sem->released_threads, handle_unblocked);
                 preempt_enable();
                 return 0;
@@ -106,11 +107,11 @@ int sem_down(sem_t sem)
         // Keep record of threads waiting for resource (FIFO)
         queue_enqueue(sem->waiting_room, caller_tcb);
 
+        uthread_block();
+
         preempt_enable();
 
         // block caller thread and go to next thread in thread_queue
-        caller_tcb->state = BLOCKED;
-        uthread_ctx_switch(caller_tcb->thread_ctx, idle_ctx);
 
         sem->resource--;
 
@@ -136,9 +137,9 @@ int sem_up(sem_t sem)
         queue_dequeue(sem->waiting_room, (void**)&blocked_tcb);
         queue_enqueue(sem->released_threads, blocked_tcb);
 
-        preempt_enable();
+        uthread_unblock(blocked_tcb);
 
-        blocked_tcb->state = UNBLOCKED;
+        preempt_enable();
 
         return 0;
 }

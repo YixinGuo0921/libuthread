@@ -71,12 +71,11 @@ void uthread_yield(void)
         queue_delete(thread_queue, current_tcb);
         queue_enqueue(thread_queue, current_tcb);
 
-        preempt_enable();
-
         current_tcb->state = READY;
 
+        preempt_enable();
+
         uthread_ctx_switch(current_tcb->thread_ctx, idle_ctx);
-        current_tcb->state = RUNNING;
 }
 
 void uthread_exit(void)
@@ -147,11 +146,9 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
         do {
                 preempt_disable();
 
-                //Get next thread and queue it to the back (functionally the same as just reading the first element)
-                do {
-                        queue_dequeue(thread_queue, (void**)&initial_tcb);
-                        queue_enqueue(thread_queue, initial_tcb);
-                } while (initial_tcb->state == BLOCKED || initial_tcb->state == RUNNING); // UNBLOCKED allowed
+                //Get next thread and queue it to the back
+                queue_dequeue(thread_queue, (void**)&initial_tcb);
+                queue_enqueue(thread_queue, initial_tcb);
 
                 initial_tcb->state = RUNNING;
                 running_tcb = initial_tcb;
@@ -173,14 +170,16 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
 
 void uthread_block(void)
 {
-        /* TODO Phase 4 */
+        struct uthread_tcb* current_tcb = uthread_current();
+        current_tcb->state = BLOCKED;
+        queue_delete(thread_queue, current_tcb);
+
+        uthread_ctx_switch(current_tcb->thread_ctx, idle_ctx);
 }
 
 void uthread_unblock(struct uthread_tcb *uthread)
 {
-        //TEMPORARY to stop gcc errors
-        UNUSED(uthread);
-
-        /* TODO Phase 4 */
+        queue_enqueue(thread_queue, uthread);
+        uthread->state = UNBLOCKED;
 }
 
