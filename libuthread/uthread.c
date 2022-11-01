@@ -35,21 +35,44 @@ struct uthread_tcb {
         int state;
 };
 
-/* Thread Header Functions */
-struct uthread_tcb *uthread_current(void)
+//* queue_iterate() callback functions */
+static void set_running_thread(queue_t q, void* data)
 {
-        return running_tcb; // set whenever idle chooses a new thread
+        if (queue_length(q) == 0)
+                return;
+
+        struct uthread_tcb* tcb_tmp = data;
+        if (tcb_tmp->state == RUNNING) {
+                running_tcb = tcb_tmp;
+        }
+}
+
+/* Thread Header Functions */
+struct uthread_tcb* uthread_current(void)
+{
+        // Sets running_tcb to the running thread
+        if (running_tcb->state != RUNNING)
+        {
+                preempt_disable();
+                queue_iterate(thread_queue, set_running_thread);
+                preempt_enable();
+        }
+
+        return running_tcb;
 }
 
 void uthread_yield(void)
 {
-        preempt_disable();
         struct uthread_tcb* current_tcb = uthread_current();
-        preempt_enable();
+
+        preempt_disable();
 
         // Queue to back and change state
         queue_delete(thread_queue, current_tcb);
         queue_enqueue(thread_queue, current_tcb);
+
+        preempt_enable();
+
         current_tcb->state = READY;
 
         uthread_ctx_switch(current_tcb->thread_ctx, idle_ctx);
@@ -58,8 +81,9 @@ void uthread_yield(void)
 
 void uthread_exit(void)
 {
-        preempt_disable();
         struct uthread_tcb* current_tcb = uthread_current();
+
+        preempt_disable();
 
         // Delete this thread from thread queue
         queue_delete(thread_queue, current_tcb);
@@ -94,9 +118,10 @@ int uthread_create(uthread_func_t func, void *arg)
         new_tcb->stack_ptr = stack_ptr;
         new_tcb->state = READY;
 
+        queue_enqueue(thread_queue, new_tcb);
+
         preempt_enable();
 
-        queue_enqueue(thread_queue, new_tcb);
         return 0;
 }
 
