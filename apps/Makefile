@@ -7,6 +7,7 @@ programs := \
 	sem_buffer.x \
 	sem_count.x \
 	sem_prime.x \
+	sem_prime_preempt.x \
 	sem_simple.x \
 	sem_corner.x \
 	test_preempt.x

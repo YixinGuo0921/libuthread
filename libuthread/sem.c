@@ -70,12 +70,13 @@ sem_t sem_create(size_t count)
 
 int sem_destroy(sem_t sem)
 {
+        preempt_disable();
         if (queue_destroy(sem->waiting_room) != 0)
                 return -1; //threads still being blocked
 
         queue_iterate(sem->released_threads, empty_queue);
         queue_destroy(sem->released_threads);
-
+        preempt_enable();
         free(sem);
 
         return 0;
@@ -86,6 +87,8 @@ int sem_down(sem_t sem)
         if (sem == NULL)
                 return -1;
 
+        preempt_disable();
+
         // Get caller thread
         struct uthread_tcb* caller_tcb = uthread_current();
 
@@ -94,6 +97,7 @@ int sem_down(sem_t sem)
                 sem->resource--;
                 // check if there were threads waiting for that resource (corner case protection)
                 queue_iterate(sem->released_threads, handle_unblocked);
+                preempt_enable();
                 return 0;
         }
 
@@ -101,6 +105,8 @@ int sem_down(sem_t sem)
 
         // Keep record of threads waiting for resource (FIFO)
         queue_enqueue(sem->waiting_room, caller_tcb);
+
+        preempt_enable();
 
         // block caller thread and go to next thread in thread_queue
         caller_tcb->state = BLOCKED;
@@ -124,9 +130,14 @@ int sem_up(sem_t sem)
         if (queue_length(sem->waiting_room) == 0)
                 return 0;
 
+        preempt_disable();
+
         // Otherwise, dequeue from waiting room and make thread available for queue again
         queue_dequeue(sem->waiting_room, (void**)&blocked_tcb);
         queue_enqueue(sem->released_threads, blocked_tcb);
+
+        preempt_enable();
+
         blocked_tcb->state = UNBLOCKED;
 
         return 0;
