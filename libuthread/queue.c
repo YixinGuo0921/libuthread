@@ -23,6 +23,10 @@ struct queue {
 node* newNode(void* data)
 {
         node* tmp = (node*)malloc(sizeof(node));
+
+        if (tmp == NULL) // malloc failed
+                return NULL; 
+
         tmp->data = data;
         tmp->next = NULL;
         tmp->prev = NULL;
@@ -31,7 +35,10 @@ node* newNode(void* data)
 
 queue_t queue_create(void)
 {
-        queue_t queue = (queue_t)malloc(sizeof(queue_t));
+        queue_t queue = (queue_t)malloc(sizeof(struct queue));
+
+        if (queue == NULL) // malloc failed
+                return NULL;
 
         queue->size = 0;
         queue->first = queue->last = NULL;
