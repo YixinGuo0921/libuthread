@@ -8,14 +8,15 @@
  *	I am a hog!
  *	I am a hog!
  *	...
- * 
+ *
  * If it does, then the terminal will read
  *
  *	I am a hog!
  *	I am a hog!
  *	...
  *	Not anymore >:)
- *	
+ *
+ * After a certain number of seconds (~5-10)
  */
 
 #include <stdbool.h>
@@ -24,31 +25,36 @@
 
 #include <uthread.h>
 
-#define MILLION 1000000
+#define MOD 1000000
 
-void thread2(void *arg)
+bool flag = true;
+
+void thread2(void* arg)
 {
 	(void)arg;
 
 	printf("Not anymore >:)\n");
-	exit(EXIT_SUCCESS);
+	flag = false;
 }
 
-void thread1(void *arg)
+void thread1(void* arg)
 {
 	(void)arg;
 
 	uthread_create(thread2, NULL);
 
-	while (1) {
+	//Run until flag is false
+	for (int i = 0; flag; ++i) {
+		if (i % MOD != 0) continue;
+
 		printf("I am a hog!\n");
-		for (int i = 0; i < MILLION; ++i); // Slow down output without using sleep
+		i = 0;
 	}
 }
 
 int main(void)
 {
 	uthread_run(true, thread1, NULL);
-	printf("Returned!\n");
+
 	return 0;
 }
