@@ -15,6 +15,7 @@ do {									\
 	}									\
 } while(0)
 
+/* queue_iterate() functions*/
 static void plus_one(queue_t q, void* data)
 {
 	(void)q;
@@ -146,7 +147,7 @@ void test_iterate_deletion()
 	TEST_ASSERT(data[0] == 2);
 	TEST_ASSERT(queue_length(q) == 9);
 
-	queue_iterate(q, delete_all);
+	queue_iterate(q, delete_all); // Cast iterative delete using iterative function
 
 	TEST_ASSERT(queue_length(q) == 0);
 }
