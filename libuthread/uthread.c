@@ -156,7 +156,8 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
         if (uthread_create(func, arg) != 0)
                 return -1;
 
-        do {
+        while (queue_length(thread_queue) != 0) {
+
                 preempt_disable();
 
                 //Get next thread and queue it to the back
@@ -172,8 +173,7 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
                 preempt_enable();
 
                 uthread_ctx_switch(idle_ctx, initial_tcb->thread_ctx);
-
-        } while (queue_length(thread_queue) != 0);
+        } 
 
         // Clean-up
         if(preempt)
