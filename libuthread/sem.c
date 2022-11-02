@@ -109,9 +109,7 @@ int sem_up(sem_t sem)
 
         // If no one in waiting room, continue thread
         if (queue_length(sem->waiting_room) == 0)
-        {
                 return 0;
-        }
 
         preempt_disable();
 

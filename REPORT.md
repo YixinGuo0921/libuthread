@@ -61,18 +61,55 @@ We realized it would be greatly benificial to create a queue that would contain
 new ones to the back. If a thread that's executing yields, it would simply be  
 deleted from its current spot and requeued to the back of `thread_queue`. If a  
 thread exited due to completion, it would simply be deleted from queue and  
-freed. This queue would be a global variable to ensure every `uthread` function  
-would have access to it.
+freed. Using a queue for `libuthread` would also allow us to use the many  
+useful functions that `queue.c` has to offer. `thread_queue` was decided to be a  
+global variable to ensure that every `uthread` function would have proper access  
+to it.
 
 The test cases indicated that `uthread_run()` is where the threading library  
 execution began, so that's where development began as well. The `idle` thread  
 was decided to be a global variable such that any function in the threading  
 library can reliably refer to it in order to switch contexts. This `idle` thread  
-throughout `libuthread.a`'s use always refers to the infinite loop within  
-`uthread_run()`, as its primary job is to assign new TCBs to the `initial`  
-thread. The `initial` was decided to be a local variable within `uthread_run()`,  
-constantly updating its 'held' thread throughout the while loop's entire  
-runtime.
+throughout `libuthread.a`'s use will always refer to the infinite loop within  
+`uthread_run()`, as its primary job is to assign the next TCB in queue to the  
+`initial` thread. Initially, the `initial` thread is assigned the function that  
+the caller program asks for (in `uthread_run()`'s parameters), and if this  
+function creates a new thread using `uthread_create()`, that new thread would be  
+queued to the back of `thread_queue`. It will then eventually be assigned to  
+`initial` once all others before it either yield or execute until completion.  
+The `initial` thread was decided to be a local variable within `uthread_run()`,  
+since no other `uthread` function requires access to it.
 
+In short, the `idle` thread initially assigns the user-requested function to  
+`initial`, and once that function yields or exits, control is returned to `idle`  
+for it to choose the *next* thread, if there exists one. Control is **always**  
+returned to idle before choosing the next thread; `uthread_yield()` and  
+`uthread_exit()` have no power to switch to the next thread by themselves. They  
+can only *modify* `thread_queue` such that `idle` can then correctly choose the  
+next thread. This functionality was tested with the given programs as well as  
+`uthread_yield2.c`, which would output a different order of statements if  
+`uthread_yield()` did not yield the current thread correctly.
 
+### Semaphore library
+Similar to cooperative threading, the test cases and project document were  
+referred to heavily in developing this phase. Initially, the semaphore struct  
+was composed of these two members:
+
+```
+struct semaphore {
+        queue_t waiting_room;
+        unsigned int resource;
+};
+```
+
+`sem_up()` and `sem_down()` both have two courses of action, both of which  
+depend on one of the above members. 
+
+- `sem_down()` subtracts a resource and returns to the thread if there are  
+enough resources (e.g. if `resource` is greater than zero); otherwise, it will  
+queue the thread into `waiting_room` and block it using `uthread_block()`.  
+  
+- `sem_up()` will **always** increase the number of resources by one, and if  
+there is *any* thread in waiting room, it will dequeue the oldest requesting  
+thread and pass it to `uthread_unblock()`.
 
