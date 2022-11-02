@@ -67,16 +67,18 @@ global variable to ensure that every `uthread` function would have proper access
 to it.
 
 The test cases indicated that `uthread_run()` is where the threading library  
-execution began, so that's where development began as well. The `idle` thread  
-was decided to be a global variable such that any function in the threading  
-library can reliably refer to it in order to switch contexts. This `idle` thread  
-throughout `libuthread.a`'s use will always refer to the infinite loop within  
-`uthread_run()`, as its primary job is to assign the next TCB in queue to the  
-`initial` thread. Initially, the `initial` thread is assigned the function that  
-the caller program asks for (in `uthread_run()`'s parameters), and if this  
-function creates a new thread using `uthread_create()`, that new thread would be  
-queued to the back of `thread_queue`. It will then eventually be assigned to  
-`initial` once all others before it either yield or execute until completion.  
+execution began, so that's where development began as well. The components are  
+as follows:  
+- The `idle` thread throughout `libuthread.a`'s runtime *always* refers to the  
+infinite loop within `uthread_run()`. Its primary job is to assign the next TCB  
+in queue to the `initial` thread and switch to it. `idle` was decided to be a  
+global variable so that any function in the threading library can reliably refer  
+to it in order to switch contexts.  
+- The `initial` thread is initially assigned the function that the caller  
+program requests (using `uthread_run()`'s parameters), and if this function  
+creates a new thread using `uthread_create()`, that new thread would be queued  
+to the back of `thread_queue`. It will then eventually be assigned to `initial`  
+by `idle` once all others before it either yield or execute until completion.  
 The `initial` thread was decided to be a local variable within `uthread_run()`,  
 since no other `uthread` function requires access to it.
 
@@ -108,8 +110,32 @@ depend on one of the above members.
 - `sem_down()` subtracts a resource and returns to the thread if there are  
 enough resources (e.g. if `resource` is greater than zero); otherwise, it will  
 queue the thread into `waiting_room` and block it using `uthread_block()`.  
-  
-- `sem_up()` will **always** increase the number of resources by one, and if  
+- `sem_up()` will *always* increase the number of resources by one, and if  
 there is *any* thread in waiting room, it will dequeue the oldest requesting  
 thread and pass it to `uthread_unblock()`.
+
+`uthread_block()` and `uthread_unblock()` simply change the passed thread to a  
+**BLOCKED** and **UNBLOCKED** state respectively. We considered also removing  
+them from `thread_queue` within `uthread.c`, but decided that it would be best  
+to keep the notion that `thread_queue` contains all existing incomplete threads,  
+regardless of if they're blocked or not. In order to account for this, the  
+`idle` thread only switches contexts to the new thread if its state is NOT  
+**BLOCKED** (i.e. if its state is **UNBLOCKED** or **READY**), otherwise it will  
+choose the next thread in queue.
+
+#### Corner Case
+
+To deal with the semaphore library's corner case, we used the **UNBLOCKED**  
+thread state and implemented one more member to the semaphore struct:  
+
+```
+queue_t released_threads;
+```
+
+This queue keeps track of every thread released by `sem_up()`. If a resource is  
+taken normally from `sem_down()`, the semaphore library will check if 
+`released_threads` is empty, i.e. if there were threads that were supposed to  
+take that resource. If it is not empty, it will iterate through each  
+**UNBLOCKED** TCB and switch it back to **BLOCKED**. 
+
 
