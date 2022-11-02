@@ -42,7 +42,7 @@ void thread1(void *arg)
 
 	while (1) {
 		printf("I am a hog!\n");
-		for (int i = 0; i < MILLION; ++i);
+		for (int i = 0; i < MILLION; ++i); // Slow down output without using sleep
 	}
 }
 

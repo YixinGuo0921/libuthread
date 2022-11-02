@@ -26,6 +26,8 @@ long count = 0;
 void alarm_handler(int signum)
 {
 	UNUSED(signum);
+
+	// Force yield
 	uthread_yield();
 }
 
@@ -82,7 +84,5 @@ void preempt_stop(void)
 		perror("setitimer");
 		exit(1);
 	}
-
-	preempt_enable();
 }
 

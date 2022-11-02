@@ -8,19 +8,19 @@
 do {									\
 	printf("ASSERT: " #assert " ... ");	\
 	if (assert) {						\
-		printf("\tPASS\n");				\
+		printf("PASS\n");				\
 	} else	{							\
-		printf("\tFAIL\n");				\
+		printf("FAIL\n");				\
 		exit(1);						\
 	}									\
 } while(0)
 
-static void print_element(queue_t q, void* data) {
-
-	queue_length(q);
-
+static void plus_one(queue_t q, void* data)
+{
+	(void)q;
 	int* a = (int*)data;
-	printf("data: %d\n", *a);
+
+	(*a)++;
 }
 static void iterator_inc(queue_t q, void* data)
 {
@@ -30,6 +30,10 @@ static void iterator_inc(queue_t q, void* data)
 		queue_delete(q, data);
 	else
 		*a += 1;
+}
+static void delete_all(queue_t q, void* data)
+{
+	queue_delete(q, data);
 }
 
 /* Create */
@@ -96,9 +100,9 @@ void test_delete()
 	TEST_ASSERT(queue_length(q) == 10);
 	TEST_ASSERT(queue_delete(q, &data[5]) == 0); // delete 42
 	TEST_ASSERT(queue_length(q) == 9);
-	TEST_ASSERT(queue_delete(q, &data[0]) == 0); // delete 1
+	TEST_ASSERT(queue_delete(q, &data[0]) == 0); // delete first element
 	TEST_ASSERT(queue_length(q) == 8);
-	TEST_ASSERT(queue_delete(q, &data[9]) == 0); //
+	TEST_ASSERT(queue_delete(q, &data[9]) == 0); // delete last element
 	TEST_ASSERT(queue_length(q) == 7);
 
 	printf("\n");
@@ -116,7 +120,10 @@ void test_iterate()
 	for (i = 0; i < sizeof(data) / sizeof(data[0]); i++)
 		queue_enqueue(q, &data[i]);
 
-	queue_iterate(q, print_element);
+	queue_iterate(q, plus_one);
+
+	TEST_ASSERT(data[0] == 2);
+	TEST_ASSERT(data[8] == 10);
 
 	printf("\n");
 }
@@ -138,6 +145,10 @@ void test_iterate_deletion()
 	queue_iterate(q, iterator_inc);
 	TEST_ASSERT(data[0] == 2);
 	TEST_ASSERT(queue_length(q) == 9);
+
+	queue_iterate(q, delete_all);
+
+	TEST_ASSERT(queue_length(q) == 0);
 }
 
 int main(void)

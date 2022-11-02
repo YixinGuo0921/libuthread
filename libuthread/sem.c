@@ -19,7 +19,7 @@ extern void handle_unblocked(queue_t q, void* data);
 
 /*
 * @waiting_room: All the threads that are waiting for this semaphore's resource
-* @released_threads: All the threads that were initially blocked via semaphore. Resets whenever a resource is taken normally (corner case)
+* @released_threads: For corner case; contains all the threads that were initially blocked via semaphore. Resets whenever a resource is taken normally
 * @resource: the count of resources a semaphore has
 */
 struct semaphore {
@@ -84,9 +84,7 @@ int sem_down(sem_t sem)
                 return 0;
         }
 
-        /* NO RESOURCES AVAILABLE */
-
-        // Keep record of threads waiting for resource (FIFO)
+        // Otherwise, keep record of threads waiting for resource (FIFO)
         queue_enqueue(sem->waiting_room, caller_tcb);
 
         uthread_block();
