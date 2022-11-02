@@ -47,6 +47,19 @@ static void set_running_thread(queue_t q, void* data)
         }
 }
 
+void handle_unblocked(queue_t q, void* data)
+{
+        if (queue_length(q) == 0)
+                return;
+
+        struct uthread_tcb* tcb_address = (struct uthread_tcb*)data;
+
+        if (tcb_address->state == UNBLOCKED) // UNBLOCKED iff sem_up specifically released it
+                tcb_address->state = BLOCKED;
+
+        queue_dequeue(q, &data);
+}
+
 /* Thread Header Functions */
 struct uthread_tcb* uthread_current(void)
 {
@@ -146,9 +159,10 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
         do {
                 preempt_disable();
 
-                //Get next thread and queue it to the back
-                queue_dequeue(thread_queue, (void**)&initial_tcb);
-                queue_enqueue(thread_queue, initial_tcb);
+                do { //Get next thread and queue it to the back
+                        queue_dequeue(thread_queue, (void**)&initial_tcb);
+                        queue_enqueue(thread_queue, initial_tcb);
+                } while (initial_tcb->state == BLOCKED);
 
                 initial_tcb->state = RUNNING;
                 running_tcb = initial_tcb;
@@ -172,14 +186,11 @@ void uthread_block(void)
 {
         struct uthread_tcb* current_tcb = uthread_current();
         current_tcb->state = BLOCKED;
-        queue_delete(thread_queue, current_tcb);
-
         uthread_ctx_switch(current_tcb->thread_ctx, idle_ctx);
 }
 
 void uthread_unblock(struct uthread_tcb *uthread)
 {
-        queue_enqueue(thread_queue, uthread);
         uthread->state = UNBLOCKED;
 }
 

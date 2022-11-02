@@ -13,7 +13,7 @@
 #define  EXITED         4 // Threads that have fully completed (unused conditionally)
 
 // From uthread.c
-extern uthread_ctx_t* idle_ctx;
+extern void handle_unblocked(queue_t q, void* data);
 
 /* Data Structures */
 
@@ -28,25 +28,7 @@ struct semaphore {
         unsigned int resource;
 };
 
-struct uthread_tcb {
-        uthread_ctx_t* thread_ctx;
-        void* stack_ptr;
-        int state;
-};
-
 /* queue_iterate() callback functions*/
-void handle_unblocked(queue_t q, void* data)
-{
-        if (queue_length(q) == 0)
-                return;
-
-        struct uthread_tcb* tcb_address = (struct uthread_tcb*)data;
-
-        if (tcb_address->state == UNBLOCKED) // UNBLOCKED iff sem_up specifically released it
-                tcb_address->state = BLOCKED;
-
-        queue_dequeue(q, &data);
-}
 
 void empty_queue(queue_t q, void* data)
 {
@@ -94,7 +76,7 @@ int sem_down(sem_t sem)
         struct uthread_tcb* caller_tcb = uthread_current();
 
         // If resources are available, take one and continue run
-        if (sem->resource != 0) {
+        if (sem->resource > 0) {
                 sem->resource--;
                 // check if any threads were waiting for that resource (corner case protection)
                 queue_iterate(sem->released_threads, handle_unblocked);
@@ -129,7 +111,9 @@ int sem_up(sem_t sem)
 
         // If no one in waiting room, continue thread
         if (queue_length(sem->waiting_room) == 0)
+        {
                 return 0;
+        }
 
         preempt_disable();
 
