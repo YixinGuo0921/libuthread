@@ -158,4 +158,14 @@ apart from disabling preemption in critical areas.
 If the `preempt` boolean is set to false when calling `uthread_run()`,  
 `preempt_start()` will execute but return after initializing sigset `ss` (this  
 is so `preempt_{enable, disable}()` does not refer to an uninitialized sigset).  
-Otherwise, it will set up an alarm with `setitimer()`
+Otherwise, it will perform three actions:  
+
+- Add `SIGALRM` and `SIGVTALRM` to `ss`; this will be used for enabling and  
+disabling preemption.
+- Set up the alarm handler such that any `SIGVTALRM` signal will execute the  
+handler, instead of simply exiting.  
+- set up the alarm itself with `setitimer()`, which utilizes the `itimerval`  
+structure for its microsecond precision.  
+
+Preemption disabling and enabling make use of `sigprocmask()`, blocking and  
+unblocking `ss` signals (`SIGALRM` and `SIGVTALRM`) respectively
