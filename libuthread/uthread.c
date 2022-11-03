@@ -45,19 +45,6 @@ static void set_running_thread(queue_t q, void* data)
 	}
 }
 
-void handle_unblocked(queue_t q, void* data)
-{
-	if (queue_length(q) == 0)
-		return;
-
-	struct uthread_tcb* tcb_address = (struct uthread_tcb*)data;
-
-	if (tcb_address->state == UNBLOCKED) // UNBLOCKED iff sem_up specifically released it
-		tcb_address->state = BLOCKED;
-
-	queue_dequeue(q, &data);
-}
-
 /* uthread Functions */
 struct uthread_tcb* uthread_current(void)
 {
