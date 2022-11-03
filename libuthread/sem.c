@@ -6,11 +6,8 @@
 #include "queue.h"
 #include "sem.h"
 
-#define  READY          0 // Threads waiting for their turn
-#define  RUNNING        1 // The current thread
 #define  BLOCKED        2 // Threads that are semaphore blocked
 #define  UNBLOCKED      3 // Like READY, but was previously waiting for a semaphore
-#define  EXITED         4 // Threads that have fully completed (unused conditionally)
 
 // From uthread.c
 /*
