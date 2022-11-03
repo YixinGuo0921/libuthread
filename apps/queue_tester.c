@@ -37,7 +37,7 @@ static void delete_all(queue_t q, void* data)
 	queue_delete(q, data);
 }
 
-/* Create */
+/* Test Cases */
 void test_create(void)
 {
 	fprintf(stderr, "*** TEST create ***\n");
@@ -54,12 +54,11 @@ void test_destroy(void)
 
 	q = queue_create();
 
-	TEST_ASSERT(queue_destroy(q) == 0);
+	TEST_ASSERT(queue_destroy(q) == 0);			//test destroy
 
 	printf("\n");
 }
 
-/* Enqueue/Dequeue simple */
 void test_queue_basic_unit(void)
 {
 	int data = 3, *ptr;
@@ -68,21 +67,23 @@ void test_queue_basic_unit(void)
 	fprintf(stderr, "*** TEST queue_enqueue ***\n");
 
 	q = queue_create();
-	TEST_ASSERT(queue_enqueue(q, &data) == 0);
-	TEST_ASSERT(queue_enqueue(NULL, &data) == -1);
-	TEST_ASSERT(queue_enqueue(q, NULL) == -1);
+	TEST_ASSERT(queue_enqueue(q, &data) == 0);		//test enqueue success
+	TEST_ASSERT(queue_enqueue(NULL, &data) == -1);		//test enqueue NULL parameter
+	TEST_ASSERT(queue_enqueue(q, NULL) == -1);		//test enqueue NULL parameter
 
 	printf("\n");
 
 	fprintf(stderr, "*** TEST queue_dequeue ***\n");
 
-	TEST_ASSERT(queue_dequeue(q, (void**)&ptr) == 0);
-	TEST_ASSERT(*ptr == 3);
-	TEST_ASSERT(queue_dequeue(NULL, (void**)&ptr) == -1);
-	TEST_ASSERT(queue_dequeue(q, NULL) == -1);
+	TEST_ASSERT(queue_dequeue(q, (void**)&ptr) == 0);	//test success
+	TEST_ASSERT(*ptr == 3);					//test pointer assignment
+	TEST_ASSERT(queue_dequeue(NULL, (void**)&ptr) == -1);	//test error
+	TEST_ASSERT(queue_dequeue(q, NULL) == -1);		//test error
 	TEST_ASSERT(queue_dequeue(q, (void**)&ptr) == -1);	//test empty
 
 	printf("\n");
+
+	queue_destroy(q) == 0;
 }
 
 void test_delete()
@@ -98,13 +99,13 @@ void test_delete()
 	for (i = 0; i < sizeof(data) / sizeof(data[0]); i++)
 		queue_enqueue(q, &data[i]);
 
-	TEST_ASSERT(queue_length(q) == 10);
-	TEST_ASSERT(queue_delete(q, &data[5]) == 0); // delete 42
-	TEST_ASSERT(queue_length(q) == 9);
-	TEST_ASSERT(queue_delete(q, &data[0]) == 0); // delete first element
-	TEST_ASSERT(queue_length(q) == 8);
-	TEST_ASSERT(queue_delete(q, &data[9]) == 0); // delete last element
-	TEST_ASSERT(queue_length(q) == 7);
+	TEST_ASSERT(queue_length(q) == 10);		//test enqueue success
+	TEST_ASSERT(queue_delete(q, &data[5]) == 0);	//test MID-set deletion (42)
+	TEST_ASSERT(queue_length(q) == 9);		//test deletion success
+	TEST_ASSERT(queue_delete(q, &data[0]) == 0);	//test FIRST-in-set deletion
+	TEST_ASSERT(queue_length(q) == 8);		//test deletion success
+	TEST_ASSERT(queue_delete(q, &data[9]) == 0);	//test LAST-in-set deletion
+	TEST_ASSERT(queue_length(q) == 7);		//test deletion success
 
 	printf("\n");
 }
@@ -123,8 +124,8 @@ void test_iterate()
 
 	queue_iterate(q, plus_one);
 
-	TEST_ASSERT(data[0] == 2);
-	TEST_ASSERT(data[8] == 10);
+	TEST_ASSERT(data[0] == 2);			//test iteration modification
+	TEST_ASSERT(data[8] == 10);			//test iteration modification
 
 	printf("\n");
 }
@@ -144,12 +145,12 @@ void test_iterate_deletion()
 
 	/* Increment every item of the queue, delete item '42' */
 	queue_iterate(q, iterator_inc);
-	TEST_ASSERT(data[0] == 2);
-	TEST_ASSERT(queue_length(q) == 9);
+	TEST_ASSERT(data[0] == 2);			//test iteration modification
+	TEST_ASSERT(queue_length(q) == 9);		//test iteration DELETION (42)
 
-	queue_iterate(q, delete_all); // Cast iterative delete using iterative function
+	queue_iterate(q, delete_all);
 
-	TEST_ASSERT(queue_length(q) == 0);
+	TEST_ASSERT(queue_length(q) == 0);		//test iteration deletion of ALL elements
 }
 
 int main(void)

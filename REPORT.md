@@ -30,6 +30,13 @@ one another. The sources used for creating the FIFO queue are as follows:
 [Doubly Linked Lists](https://www.tutorialspoint.com/data_structures_algorithms/doubly_linked_list_algorithm.htm)  
 [Deletion in a Linked List](https://www.geeksforgeeks.org/deletion-in-linked-list/)
 
+This phase was the only one in project 2 to employ unit testing, since queues  
+are pervasive throughout every other phase of this project. All unit tests are  
+located in `queue_tester.c`, and test every feature + their edge cases (for  
+example, `queue_delete()` with only one object in queue, `queue_iterate()` with  
+a deletion function, etc.). Every test case is briefly described in the  
+aforementioned C file.
+
 ## libuthread.a
 Creating `libuthread` itself can be decomposed into three phases. First, a  
 cooperative threading structure is implemented, where each thread must  
@@ -78,7 +85,7 @@ to it in order to switch contexts.
 program requests (using `uthread_run()`'s parameters), and if this function  
 creates a new thread using `uthread_create()`, that new thread would be queued  
 to the back of `thread_queue`. It will then eventually be assigned to `initial`  
-by `idle` once all others before it either yield or execute until completion.  
+by `idle` once all others before it either yielded or executed until completion.  
 The `initial` thread was decided to be a local variable within `uthread_run()`,  
 since no other `uthread` function requires access to it.
 
@@ -88,14 +95,16 @@ for it to choose the *next* thread, if there exists one. Control is **always**
 returned to idle before choosing the next thread; `uthread_yield()` and  
 `uthread_exit()` have no power to switch to the next thread by themselves. They  
 can only *modify* `thread_queue` such that `idle` can then correctly choose the  
-next thread. This functionality was tested with the given programs as well as  
-`uthread_yield2.c`, which would output a different order of statements if  
-`uthread_yield()` did not yield the current thread correctly.
+next thread. 
 
 The **RUNNING** state informs the rest of the program which thread is running.  
 It is assigned in the `idle` thread *only*, which works out since threads will  
 *always* switch to the idle thread to pick the next thread. The **READY** state  
-simply 
+is simply the state threads remain in when queued for execution.  
+
+Testing was accomplished using the given test cases, as well as  
+`uthread_yield2.c`, which would output a different order of statements if  
+`uthread_yield()` did not yield the current thread correctly.
 
 ### Semaphore library
 Similar to cooperative threading, the test cases and project document were  
@@ -148,6 +157,11 @@ resources. Our implementation of semaphores therefore iterates through
 **UNBLOCKED** threads back to being **BLOCKED**, thus preventing them from  
 running.
 
+Testing was accomplished using the given `sem_` test files, as well as one  
+additional one named `sem_corner.c`. This test file tests the corner case  
+described in the project document; the program should be blocked on a  
+semaphore until an alarm ends the program.
+
 ### Preemption
 The premise of this phase is fairly detached from the rest of the project.  
 Whereas other phases added further functionality to `uthread.c`, this phase  
@@ -158,14 +172,21 @@ apart from disabling preemption in critical areas.
 If the `preempt` boolean is set to false when calling `uthread_run()`,  
 `preempt_start()` will execute but return after initializing sigset `ss` (this  
 is so `preempt_{enable, disable}()` does not refer to an uninitialized sigset).  
-Otherwise, it will perform three actions:  
+Otherwise, it will perform these three actions:  
 
-- Add `SIGALRM` and `SIGVTALRM` to `ss`; this will be used for enabling and  
-disabling preemption.
+- Add `SIGALRM` and `SIGVTALRM` to `ss`; this will be used for  
+`preempt_{enable, disable}()`
 - Set up the alarm handler such that any `SIGVTALRM` signal will execute the  
 handler, instead of simply exiting.  
 - set up the alarm itself with `setitimer()`, which utilizes the `itimerval`  
 structure for its microsecond precision.  
 
 Preemption disabling and enabling make use of `sigprocmask()`, blocking and  
-unblocking `ss` signals (`SIGALRM` and `SIGVTALRM`) respectively
+unblocking `ss` signals (`SIGALRM` and `SIGVTALRM`) respectively.
+
+The alarm handler simply force calls `uthread_yield()` and performs no further  
+functions.
+
+Testing was accomplished in `test_preempt.c` by initializing `uthread_run()` to  
+a function which does not yield, but which creates a second thread that can  
+only run if the initial thread yields.

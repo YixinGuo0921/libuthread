@@ -12,9 +12,9 @@
 */
 typedef struct node
 {
-        void *data;
-        struct node* next;
-        struct node* prev;
+	void *data;
+	struct node* next;
+	struct node* prev;
 }node;
 
 /*
@@ -24,162 +24,162 @@ typedef struct node
 */
 struct queue {
 
-        int size;
+	int size;
 
-        node* first;
-        node* last;
+	node* first;
+	node* last;
 };
 
 node* newNode(void* data)
 {
-        node* tmp = (node*)malloc(sizeof(node));
+	node* tmp = (node*)malloc(sizeof(node));
 
-        if (tmp == NULL) // malloc failed
-                return NULL; 
+	if (tmp == NULL) // malloc failed
+		return NULL; 
 
-        tmp->data = data;
-        tmp->next = NULL;
-        tmp->prev = NULL;
-        return tmp;
+	tmp->data = data;
+	tmp->next = NULL;
+	tmp->prev = NULL;
+	return tmp;
 }
 
 queue_t queue_create(void)
 {
-        queue_t queue = (queue_t)malloc(sizeof(struct queue));
+	queue_t queue = (queue_t)malloc(sizeof(struct queue));
 
-        if (queue == NULL) // malloc failed
-                return NULL;
+	if (queue == NULL) // malloc failed
+		return NULL;
 
-        // nothing in queue yet
-        queue->size = 0;
-        queue->first = queue->last = NULL;
+	// nothing in queue yet
+	queue->size = 0;
+	queue->first = queue->last = NULL;
 
-        return queue;
+	return queue;
 }
 
 int queue_destroy(queue_t queue)
 {
-        if (queue == NULL) return -1;
-        if (queue->size != 0) return -1;
+	if (queue == NULL) return -1;
+	if (queue->size != 0) return -1;
 
-        // destroy queue
-        free(queue);
+	// destroy queue
+	free(queue);
 
-        return 0;
+	return 0;
 }
 
 int queue_enqueue(queue_t queue, void *data)
 {
-        if (queue == NULL || data == NULL) return -1;
+	if (queue == NULL || data == NULL) return -1;
 
-        node* tmp = newNode(data);
+	node* tmp = newNode(data);
 
-        // Only element in queue
-        if (queue->size == 0)
-        {
-                queue->first = queue->last = tmp;
-                queue->size++;
-                return 0;
-        }
+	// Only element in queue
+	if (queue->size == 0)
+	{
+		queue->first = queue->last = tmp;
+		queue->size++;
+		return 0;
+	}
 
-        // Assign appropriate pointers
-        tmp->prev = queue->last;
-        queue->last->next = tmp; 
+	// Assign appropriate pointers
+	tmp->prev = queue->last;
+	queue->last->next = tmp; 
 
-        // enqueue
-        queue->last = tmp; 
-        queue->size++;
+	// enqueue
+	queue->last = tmp; 
+	queue->size++;
 
-        return 0;
+	return 0;
 }
 
 int queue_dequeue(queue_t queue, void **data)
 {
-        if (queue == NULL || data == NULL) return -1;
-        if (queue->size == 0) return -1;
+	if (queue == NULL || data == NULL) return -1;
+	if (queue->size == 0) return -1;
 
-        node* tmp = queue->first;
+	node* tmp = queue->first;
 
-        // Save data
-        *data = queue->first->data;
+	// Save data
+	*data = queue->first->data;
 
-        // Replace oldest in queue
-        queue->first = queue->first->next;
-        queue->size--;
+	// Replace oldest in queue
+	queue->first = queue->first->next;
+	queue->size--;
 
-        // Reset queue->first pointers
-        if (queue->size != 0)
-                queue->first->prev = NULL;
+	// Reset queue->first pointers
+	if (queue->size != 0)
+		queue->first->prev = NULL;
 
-        // Empty queue if no more elements
-        if (queue->first == NULL)
-                queue->last = NULL;
+	// Empty queue if no more elements
+	if (queue->first == NULL)
+		queue->last = NULL;
 
-        free(tmp);
+	free(tmp);
 
-        return 0;
+	return 0;
 }
 
 int queue_delete(queue_t queue, void *data)
 {
-        if (queue == NULL || data == NULL) return -1;
-        
-        node* current = queue->first;
-        node* prev = NULL;
+	if (queue == NULL || data == NULL) return -1;
+	
+	node* current = queue->first;
+	node* prev = NULL;
 
-        if (current == NULL) return -1;
+	if (current == NULL) return -1;
 
-        // First element
-        if (current->data == data) {
-                queue_dequeue(queue, &data);
-                return 0;
-        }
+	// First element
+	if (current->data == data) {
+		queue_dequeue(queue, &data);
+		return 0;
+	}
 
-        // Iterate through queue until match found
-        while (current->data != data && current != NULL) {
-                prev = current;
-                current = current->next;
-        }
-        if (current == NULL) return -1;
-        
-        // Data found
-        if (current == queue->last)
-        {
-                queue->last = current->prev;
-                queue->last->next = NULL;
+	// Iterate through queue until match found
+	while (current->data != data && current != NULL) {
+		prev = current;
+		current = current->next;
+	}
+	if (current == NULL) return -1;
+	
+	// Data found
+	if (current == queue->last)
+	{
+		queue->last = current->prev;
+		queue->last->next = NULL;
 
-                free(current);
-                queue->size--;
-                return 0;
-        }
+		free(current);
+		queue->size--;
+		return 0;
+	}
 
-        // Reassign both adjacent node's pointers 
-        current->next->prev = prev;
-        prev->next = current->next;
+	// Reassign both adjacent node's pointers 
+	current->next->prev = prev;
+	prev->next = current->next;
 
-        free(current);
-        queue->size--;
-        return 0;
+	free(current);
+	queue->size--;
+	return 0;
 }
 
 int queue_iterate(queue_t queue, queue_func_t func)
 {
-        if (queue == NULL || func == NULL) return -1;
+	if (queue == NULL || func == NULL) return -1;
 
-        node* element = queue->first;
+	node* element = queue->first;
 
-        //Apply function to every node in queue
-        while (element != NULL) {
-                node* tmp = element->next;
-                func(queue, element->data);
-                element = tmp;
-        }
+	//Apply function to every node in queue
+	while (element != NULL) {
+		node* tmp = element->next;
+		func(queue, element->data);
+		element = tmp;
+	}
 
-        return 0;
+	return 0;
 }
 
 int queue_length(queue_t queue)
 {
-        return queue->size;
+	return queue->size;
 }
 
