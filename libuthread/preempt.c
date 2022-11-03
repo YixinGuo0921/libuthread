@@ -33,11 +33,13 @@ void alarm_handler(int signum)
 
 void preempt_disable(void)
 {
+	// Block signals
 	sigprocmask(SIG_BLOCK, &ss, NULL);
 }
 
 void preempt_enable(void)
 {
+	// Unblock signals
 	sigprocmask(SIG_UNBLOCK, &ss, NULL);
 }
 
@@ -58,7 +60,7 @@ void preempt_start(bool preempt)
 	sa_new.sa_handler = &alarm_handler;
 	sigemptyset(&sa_new.sa_mask);
 	sa_new.sa_flags = 0;
-	sigaction(SIGVTALRM, &sa_new, &sa_old);
+	sigaction(SIGVTALRM, &sa_new, &sa_old); // save old configuration
 
 	// Create alarm that pops off every 100ms
 	it_val.it_value.tv_sec = 0;
@@ -66,7 +68,7 @@ void preempt_start(bool preempt)
 	it_val.it_interval.tv_sec = 0;
 	it_val.it_interval.tv_usec = 1000000 / HZ;
 
-	if (setitimer(ITIMER_VIRTUAL, &it_val, &it_val_old) == -1) {
+	if (setitimer(ITIMER_VIRTUAL, &it_val, &it_val_old) == -1) { // save old configuration
 		perror("setitimer");
 		exit(1);
 	}

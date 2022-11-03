@@ -5,13 +5,23 @@
 
 #include "queue.h"
 
+/*
+* @data: The address to an unknown data type
+* @next: The node after this one (next in queue)
+* @prev: The node before this one
+*/
 typedef struct node
 {
-        void *data;     // holds an address to an unknown data type
+        void *data;
         struct node* next;
         struct node* prev;
 }node;
 
+/*
+* @size: The number of nodes in queue
+* @first: the first node in the queue (to be dequeued next)
+* @last: the last node in queue (the most recently queued)
+*/
 struct queue {
 
         int size;
@@ -40,6 +50,7 @@ queue_t queue_create(void)
         if (queue == NULL) // malloc failed
                 return NULL;
 
+        // nothing in queue yet
         queue->size = 0;
         queue->first = queue->last = NULL;
 
@@ -51,7 +62,7 @@ int queue_destroy(queue_t queue)
         if (queue == NULL) return -1;
         if (queue->size != 0) return -1;
 
-        //destroy queue
+        // destroy queue
         free(queue);
 
         return 0;
@@ -63,7 +74,7 @@ int queue_enqueue(queue_t queue, void *data)
 
         node* tmp = newNode(data);
 
-        //Only element in queue
+        // Only element in queue
         if (queue->size == 0)
         {
                 queue->first = queue->last = tmp;
@@ -71,11 +82,11 @@ int queue_enqueue(queue_t queue, void *data)
                 return 0;
         }
 
-        //Set up pointers
+        // Assign appropriate pointers
         tmp->prev = queue->last;
         queue->last->next = tmp; 
 
-        //enqueue
+        // enqueue
         queue->last = tmp; 
         queue->size++;
 
@@ -89,18 +100,18 @@ int queue_dequeue(queue_t queue, void **data)
 
         node* tmp = queue->first;
 
-        //Save data
+        // Save data
         *data = queue->first->data;
 
-        //Replace oldest in queue
+        // Replace oldest in queue
         queue->first = queue->first->next;
         queue->size--;
 
-        //Reset queue->first pointers
+        // Reset queue->first pointers
         if (queue->size != 0)
                 queue->first->prev = NULL;
 
-        //Empty queue if no more elements
+        // Empty queue if no more elements
         if (queue->first == NULL)
                 queue->last = NULL;
 
@@ -118,20 +129,20 @@ int queue_delete(queue_t queue, void *data)
 
         if (current == NULL) return -1;
 
-        //First element
+        // First element
         if (current->data == data) {
                 queue_dequeue(queue, &data);
                 return 0;
         }
 
-        //Iterate through queue until match found
+        // Iterate through queue until match found
         while (current->data != data && current != NULL) {
                 prev = current;
                 current = current->next;
         }
         if (current == NULL) return -1;
         
-        //Data found
+        // Data found
         if (current == queue->last)
         {
                 queue->last = current->prev;
@@ -142,6 +153,7 @@ int queue_delete(queue_t queue, void *data)
                 return 0;
         }
 
+        // Reassign both adjacent node's pointers 
         current->next->prev = prev;
         prev->next = current->next;
 

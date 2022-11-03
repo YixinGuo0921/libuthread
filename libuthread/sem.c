@@ -6,16 +6,8 @@
 #include "queue.h"
 #include "sem.h"
 
-#define  READY          0 // Threads waiting for their turn
-#define  RUNNING        1 // The current thread
-#define  BLOCKED        2 // Threads that are semaphore blocked
-#define  UNBLOCKED      3 // Like READY, but was previously waiting for a semaphore
-#define  EXITED         4 // Threads that have fully completed (unused conditionally)
-
 // From uthread.c
 extern void handle_unblocked(queue_t q, void* data);
-
-/* Data Structures */
 
 /*
 * @waiting_room: All the threads that are waiting for this semaphore's resource
@@ -29,13 +21,12 @@ struct semaphore {
 };
 
 /* queue_iterate() callback functions*/
-
 void empty_queue(queue_t q, void* data)
 {
         queue_dequeue(q, &data);
 }
 
-/* Semaphore Class Functions*/
+/* Semaphore Functions*/
 sem_t sem_create(size_t count)
 {
         sem_t new_sem = malloc(sizeof(struct semaphore));
@@ -56,6 +47,7 @@ int sem_destroy(sem_t sem)
         if (queue_destroy(sem->waiting_room) != 0)
                 return -1; //threads still being blocked
 
+        // Empty released_threads before destroying it
         queue_iterate(sem->released_threads, empty_queue);
         queue_destroy(sem->released_threads);
 
@@ -75,26 +67,18 @@ int sem_down(sem_t sem)
         // Get caller thread
         struct uthread_tcb* caller_tcb = uthread_current();
 
-        // If resources are available, take one and continue run
+        // If resources are available, check if any threads were waiting for that resource (corner case protection)
         if (sem->resource > 0) {
-                sem->resource--;
-                // check if any threads were waiting for that resource (corner case protection)
                 queue_iterate(sem->released_threads, handle_unblocked);
-                preempt_enable();
-                return 0;
+        }
+        // Otherwise, keep record of threads waiting for resource (FIFO) and block
+        else {
+                queue_enqueue(sem->waiting_room, caller_tcb);
+                uthread_block();
         }
 
-        // Otherwise, keep record of threads waiting for resource (FIFO)
-        queue_enqueue(sem->waiting_room, caller_tcb);
-
-        uthread_block();
-
         preempt_enable();
-
-        // block caller thread and go to next thread in thread_queue
-
         sem->resource--;
-
         return 0;
 }
 
@@ -115,7 +99,7 @@ int sem_up(sem_t sem)
 
         // Otherwise, dequeue from waiting room and make thread available for queue again
         queue_dequeue(sem->waiting_room, (void**)&blocked_tcb);
-        queue_enqueue(sem->released_threads, blocked_tcb);
+        queue_enqueue(sem->released_threads, blocked_tcb); // track released thread
 
         uthread_unblock(blocked_tcb);
 
