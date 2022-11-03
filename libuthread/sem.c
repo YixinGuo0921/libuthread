@@ -6,9 +6,13 @@
 #include "queue.h"
 #include "sem.h"
 
-// From uthread.c
-extern void handle_unblocked(queue_t q, void* data);
+#define  READY          0 // Threads waiting for their turn
+#define  RUNNING        1 // The current thread
+#define  BLOCKED        2 // Threads that are semaphore blocked
+#define  UNBLOCKED      3 // Like READY, but was previously waiting for a semaphore
+#define  EXITED         4 // Threads that have fully completed (unused conditionally)
 
+// From uthread.c
 /*
 * @waiting_room: All the threads that are waiting for this semaphore's resource
 * @released_threads: For corner case; contains all the threads that were initially blocked via semaphore. Resets whenever a resource is taken normally
@@ -18,6 +22,11 @@ struct semaphore {
 	queue_t released_threads;
 	queue_t waiting_room;
 	unsigned int resource;
+}; 
+struct uthread_tcb {			// For handle_unblocked() to see states
+	uthread_ctx_t* thread_ctx;
+	void* stack_ptr;
+	int state;
 };
 
 /* queue_iterate() callback functions*/
@@ -57,6 +66,27 @@ int sem_destroy(sem_t sem)
 	return 0;
 }
 
+/* 
+* Changes all UNBLOCKED threads BLOCKED and transfers them to waiting_room.
+* (This is for corner case)
+*/
+void handle_unblocked(sem_t sem)
+{
+	struct uthread_tcb* tcb_address;
+
+	while (queue_length(sem->released_threads) != 0) {
+
+		queue_dequeue(sem->released_threads, (void**)&tcb_address);
+
+		// UNBLOCKED iff sem_up specifically released it
+		if (tcb_address->state != UNBLOCKED)
+			continue;
+
+		tcb_address->state = BLOCKED;
+		queue_enqueue(sem->waiting_room, tcb_address);
+	}
+}
+
 int sem_down(sem_t sem)
 {
 	if (sem == NULL)
@@ -69,7 +99,7 @@ int sem_down(sem_t sem)
 
 	// If resources are available, check if any threads were waiting for that resource (corner case protection)
 	if (sem->resource > 0) {
-		queue_iterate(sem->released_threads, handle_unblocked);
+		handle_unblocked(sem);
 	}
 	// Otherwise, keep record of threads waiting for resource (FIFO) and block
 	else {
