@@ -81,8 +81,8 @@ void test_queue_basic_unit(void)
 
 	TEST_ASSERT(queue_dequeue(q, (void**)&ptr) == 0);	//test success
 	TEST_ASSERT(*ptr == 3);					//test pointer assignment
-	TEST_ASSERT(queue_dequeue(NULL, (void**)&ptr) == -1);	//test error
-	TEST_ASSERT(queue_dequeue(q, NULL) == -1);		//test error
+	TEST_ASSERT(queue_dequeue(NULL, (void**)&ptr) == -1);	//test dequeue NULL parameter
+	TEST_ASSERT(queue_dequeue(q, NULL) == -1);		//test dequeue NULL parameter
 	TEST_ASSERT(queue_dequeue(q, (void**)&ptr) == -1);	//test empty
 
 	printf("\n");
