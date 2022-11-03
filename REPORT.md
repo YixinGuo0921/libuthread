@@ -155,12 +155,14 @@ other state, it means that they were ran by `idle` and thus legally took their
 resources. Our implementation of semaphores therefore iterates through  
 `released_threads` every time a resource is released normally, changing any  
 **UNBLOCKED** threads back to being **BLOCKED**, thus preventing them from  
-running.
+running. `handle_unblocked()` uses its own while loop to examine every element  
+instead of using `queue_iterate()` because it needs access to *both* semaphore  
+queues.
 
 Testing was accomplished using the given `sem_` test files, as well as one  
 additional one named `sem_corner.c`. This test file tests the corner case  
 described in the project document; the program should be blocked on a  
-semaphore until an alarm ends the program.
+semaphore until an alarm releases an additional resource, clearing the block.
 
 ### Preemption
 The premise of this phase is fairly detached from the rest of the project.  
