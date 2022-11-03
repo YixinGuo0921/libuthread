@@ -23,9 +23,9 @@ a set maximum size for initialization.
 
 Doubly linked lists were specifically chosen since it would allow elements to  
 see the node behind *and* in front of them. This was essential for ensuring   
-that queue_delete() functions properly; that is, if a node is deleted,  
-it must know its adjacent nodes in order to reassign their pointers to one  
-another. The sources used for creating the FIFO queue are as follows:
+that `queue_delete()` properly functions; that is, if a node is deleted,  
+it must know both of its adjacent nodes in order to reassign their pointers to  
+one another. The sources used for creating the FIFO queue are as follows:
 
 [Doubly Linked Lists](https://www.tutorialspoint.com/data_structures_algorithms/doubly_linked_list_algorithm.htm)  
 [Deletion in a Linked List](https://www.geeksforgeeks.org/deletion-in-linked-list/)
@@ -92,6 +92,11 @@ next thread. This functionality was tested with the given programs as well as
 `uthread_yield2.c`, which would output a different order of statements if  
 `uthread_yield()` did not yield the current thread correctly.
 
+The **RUNNING** state informs the rest of the program which thread is running.  
+It is assigned in the `idle` thread *only*, which works out since threads will  
+*always* switch to the idle thread to pick the next thread. The **READY** state  
+simply 
+
 ### Semaphore library
 Similar to cooperative threading, the test cases and project document were  
 referred to heavily in developing this phase. Initially, the semaphore struct  
@@ -132,10 +137,25 @@ thread state and implemented one more member to the semaphore struct:
 queue_t released_threads;
 ```
 
-This queue keeps track of every thread released by `sem_up()`. If a resource is  
-taken normally from `sem_down()`, the semaphore library will check if 
-`released_threads` is empty, i.e. if there were threads that were supposed to  
-take that resource. If it is not empty, it will iterate through each  
-**UNBLOCKED** TCB and switch it back to **BLOCKED**. 
+This queue keeps track of every thread released by `sem_up()`, making use of the     
+distinction between **UNBLOCKED** and **READY**. If a resource is released and  
+there exists **UNBLOCKED** threads within `released_threads`, that means that  
+those threads were *supposed* to take the resource but had it stolen from them,  
+thus creating the corner case. If the threads in `released_threads` are of any  
+other state, it means that they were ran by `idle` and thus legally took their  
+resources. Our implementation of semaphores therefore iterates through  
+`released_threads` every time a resource is released normally, changing any  
+**UNBLOCKED** threads back to being **BLOCKED**, thus preventing them from  
+running.
 
+### Preemption
+The premise of this phase is fairly detached from the rest of the project.  
+Whereas other phases added further functionality to `uthread.c`, this phase  
+simply adds a 'different mode' for the rest of `libuthread` to run in. This  
+means modification to anything outside of `preempt.c` for this phase was scarce,  
+apart from disabling preemption in critical areas.
 
+If the `preempt` boolean is set to false when calling `uthread_run()`,  
+`preempt_start()` will execute but return after initializing sigset `ss` (this  
+is so `preempt_{enable, disable}()` does not refer to an uninitialized sigset).  
+Otherwise, it will set up an alarm with `setitimer()`
