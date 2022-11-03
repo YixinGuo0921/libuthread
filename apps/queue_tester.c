@@ -36,6 +36,10 @@ static void delete_all(queue_t q, void* data)
 {
 	queue_delete(q, data);
 }
+static void dequeue_all(queue_t q, void* data)
+{
+	queue_dequeue(q, &data);
+}
 
 /* Test Cases */
 void test_create(void)
@@ -83,7 +87,7 @@ void test_queue_basic_unit(void)
 
 	printf("\n");
 
-	queue_destroy(q) == 0;
+	queue_destroy(q);
 }
 
 void test_delete()
@@ -107,6 +111,8 @@ void test_delete()
 	TEST_ASSERT(queue_delete(q, &data[9]) == 0);	//test LAST-in-set deletion
 	TEST_ASSERT(queue_length(q) == 7);		//test deletion success
 
+	queue_iterate(q, dequeue_all);
+	TEST_ASSERT(queue_destroy(q) == 0);		//test iteration dequeuing of ALL elements
 	printf("\n");
 }
 
@@ -127,6 +133,8 @@ void test_iterate()
 	TEST_ASSERT(data[0] == 2);			//test iteration modification
 	TEST_ASSERT(data[8] == 10);			//test iteration modification
 
+	queue_iterate(q, dequeue_all);
+	TEST_ASSERT(queue_destroy(q) == 0);		//test iteration dequeuing of ALL elements
 	printf("\n");
 }
 
@@ -150,7 +158,7 @@ void test_iterate_deletion()
 
 	queue_iterate(q, delete_all);
 
-	TEST_ASSERT(queue_length(q) == 0);		//test iteration deletion of ALL elements
+	TEST_ASSERT(queue_destroy(q) == 0);		//test iteration deletion of ALL elements
 }
 
 int main(void)

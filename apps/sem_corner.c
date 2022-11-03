@@ -6,7 +6,8 @@
  *      thread2
  *      thread3
  *	<wait 3 seconds>
- *	Kirby Super Star Ultra
+ *	Releasing resource
+ *	thread1
  * 
  * then exit. If the output is
  * 
@@ -36,8 +37,8 @@ void test_handler(int signum)
 {
 	UNUSED(signum);
 
-	printf("Kirby Super Star Ultra\n");
-	exit(EXIT_SUCCESS);
+	printf("Releasing resource\n");
+	sem_up(sem);
 }
 
 static void thread3(void *arg)
